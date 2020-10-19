@@ -12,17 +12,21 @@ type Task func() error
 // Run starts tasks in N goroutines and stops its work when receiving M errors from tasks
 // M <= 0 - ignore errors.
 func Run(tasks []Task, n int, m int) error {
-	wg := &sync.WaitGroup{}
+	done := make(chan interface{})
 	taskChan := make(chan Task)
 	resultChan := make(chan error, n)
 
-	executeTasks(wg, resultChan, taskChan, n)
-	go waitExecuteTasksDone(wg, resultChan)
+	wg := &sync.WaitGroup{}
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go worker(wg, done, resultChan, taskChan)
+	}
+
 	isErrorsLimitExceeded := runTasks(tasks, resultChan, taskChan, m)
 
+	close(done)
 	close(taskChan)
-	for range resultChan {
-	}
+	wg.Wait()
 
 	if isErrorsLimitExceeded {
 		return ErrErrorsLimitExceeded
@@ -30,23 +34,17 @@ func Run(tasks []Task, n int, m int) error {
 	return nil
 }
 
-func executeTasks(wg *sync.WaitGroup, resultChan chan<- error, taskChan <-chan Task, n int) {
-	for i := 0; i < n; i++ {
-		wg.Add(1)
+func worker(wg *sync.WaitGroup, done <-chan interface{}, resultChan chan<- error, taskChan <-chan Task) {
+	defer wg.Done()
 
-		go func() {
-			defer wg.Done()
-
-			for task := range taskChan {
-				resultChan <- task()
-			}
-		}()
+	for task := range taskChan {
+		result := task()
+		select {
+		case <-done:
+			return
+		case resultChan <- result:
+		}
 	}
-}
-
-func waitExecuteTasksDone(wg *sync.WaitGroup, resultChan chan error) {
-	wg.Wait()
-	close(resultChan)
 }
 
 func runTasks(tasks []Task, resultChan <-chan error, taskChan chan<- Task, m int) bool {
