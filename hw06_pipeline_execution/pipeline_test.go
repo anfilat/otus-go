@@ -90,4 +90,56 @@ func TestPipeline(t *testing.T) {
 		require.Len(t, result, 0)
 		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
 	})
+
+	t.Run("without stages", func(t *testing.T) {
+		in := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+
+		go func() {
+			for _, v := range data {
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]int, 0, 10)
+		start := time.Now()
+		for s := range ExecutePipeline(in, nil) {
+			result = append(result, s.(int))
+		}
+		elapsed := time.Since(start)
+
+		require.Equal(t, data, result)
+		require.Less(t, int64(elapsed), int64(fault))
+	})
+
+	t.Run("without stages with done", func(t *testing.T) {
+		in := make(Bi)
+		done := make(Bi)
+		data := []int{1, 2, 3, 4, 5}
+
+		abortDur := sleepPerStage / 2
+		go func() {
+			<-time.After(abortDur)
+			close(done)
+		}()
+
+		go func() {
+			for _, v := range data {
+				time.Sleep(sleepPerStage)
+				in <- v
+			}
+			close(in)
+		}()
+
+		result := make([]int, 0, 10)
+		start := time.Now()
+		for s := range ExecutePipeline(in, done) {
+			result = append(result, s.(int))
+		}
+		elapsed := time.Since(start)
+
+		require.Len(t, result, 0)
+		require.Less(t, int64(elapsed), int64(abortDur)+int64(fault))
+	})
 }
