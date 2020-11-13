@@ -38,7 +38,7 @@ jobs:
     - name: Linters
       uses: golangci/golangci-lint-action@v1
       with:
-        version: v1.30
+        version: v1.32.2
         working-directory: ${{env.BRANCH}}
   
   test:
@@ -72,7 +72,7 @@ jobs:
     - name: Bash tests
       shell: bash
       run: ./test.sh
-      if: env.BRANCH == 'hw07_file_copying' || env.BRANCH == 'hw08_envdir_tool' || env.BRANCH == 'hw09_generator_of_validators' || env.BRANCH == 'hw11_telnet_client'
+      if: env.BRANCH == 'hw07_file_copying' || env.BRANCH == 'hw08_envdir_tool' || env.BRANCH == 'hw11_telnet_client'
       working-directory: ${{env.BRANCH}}
 
     - name: Makefile
