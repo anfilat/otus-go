@@ -15,7 +15,7 @@ jobs:
     if: github.ref != 'refs/heads/hw12_13_14_15_calendar'
     steps:
     - name: Extract branch name
-      run: echo "::set-env name=BRANCH::${GITHUB_REF#refs/heads/}"
+      run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
     - name: Set up Go
       uses: actions/setup-go@v2
@@ -30,22 +30,22 @@ jobs:
     if: github.ref != 'refs/heads/hw12_13_14_15_calendar'
     steps:
     - name: Extract branch name
-      run: echo "::set-env name=BRANCH::${GITHUB_REF#refs/heads/}"
+      run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
     - name: Check out code
       uses: actions/checkout@v2
    
     - name: Linters
-      uses: golangci/golangci-lint-action@v1
+      uses: golangci/golangci-lint-action@v2
       with:
-        version: v1.32.2
+        version: v1.32
         working-directory: ${{env.BRANCH}}
   
   test:
     runs-on: ubuntu-latest
     steps:
     - name: Extract branch name
-      run: echo "::set-env name=BRANCH::${GITHUB_REF#refs/heads/}"
+      run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
     - name: Set up Go
       uses: actions/setup-go@v2
