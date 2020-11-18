@@ -122,7 +122,7 @@ func validateField(errs ValidationErrors, typ reflect.StructField, value reflect
 	switch kind {
 	case reflect.String:
 		rules, err = fillStringRules(field, validateTag)
-	case reflect.Int:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		rules, err = fillIntRules(field, validateTag)
 	default:
 		return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: kind}
@@ -144,7 +144,7 @@ func validateFieldSlice(errs ValidationErrors, typ reflect.StructField, value re
 	switch kind {
 	case reflect.String:
 		rules, err = fillStringRules(field, validateTag)
-	case reflect.Int:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		rules, err = fillIntRules(field, validateTag)
 	default:
 		return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: kind}
@@ -229,11 +229,11 @@ type strLen struct {
 }
 
 func newStrLen(value string) (*strLen, error) {
-	val, err := strconv.Atoi(value)
+	val, err := strconv.ParseInt(value, 10, 0)
 	if err != nil {
 		return nil, err
 	}
-	return &strLen{cond: val}, nil
+	return &strLen{cond: int(val)}, nil
 }
 
 func (s strLen) validate(value string) error {
@@ -314,7 +314,7 @@ func fillIntRules(field, value string) (fieldRules, error) {
 }
 
 type intRule interface {
-	validate(value int) error
+	validate(value int64) error
 }
 
 type intRules struct {
@@ -323,7 +323,7 @@ type intRules struct {
 }
 
 func (r *intRules) validate(errs ValidationErrors, value reflect.Value) ValidationErrors {
-	val := int(value.Int())
+	val := value.Int()
 	for _, rule := range r.rules {
 		err := rule.validate(val)
 		if err != nil {
@@ -341,18 +341,18 @@ func (r *intRules) validateSlice(errs ValidationErrors, value reflect.Value) Val
 }
 
 type intMin struct {
-	cond int
+	cond int64
 }
 
 func newIntMin(value string) (*intMin, error) {
-	val, err := strconv.Atoi(value)
+	val, err := strconv.ParseInt(value, 10, 0)
 	if err != nil {
 		return nil, err
 	}
 	return &intMin{cond: val}, nil
 }
 
-func (s intMin) validate(value int) error {
+func (s intMin) validate(value int64) error {
 	if value >= s.cond {
 		return nil
 	}
@@ -360,18 +360,18 @@ func (s intMin) validate(value int) error {
 }
 
 type intMax struct {
-	cond int
+	cond int64
 }
 
 func newIntMax(value string) (*intMax, error) {
-	val, err := strconv.Atoi(value)
+	val, err := strconv.ParseInt(value, 10, 0)
 	if err != nil {
 		return nil, err
 	}
 	return &intMax{cond: val}, nil
 }
 
-func (s intMax) validate(value int) error {
+func (s intMax) validate(value int64) error {
 	if value <= s.cond {
 		return nil
 	}
@@ -379,18 +379,18 @@ func (s intMax) validate(value int) error {
 }
 
 type intIn struct {
-	cond []int
+	cond []int64
 }
 
 func newIntIn(value string) (*intIn, error) {
-	val, err := strsToInts(strings.Split(value, ","))
+	val, err := strsToInts64(strings.Split(value, ","))
 	if err != nil {
 		return nil, err
 	}
 	return &intIn{cond: val}, nil
 }
 
-func (s intIn) validate(value int) error {
+func (s intIn) validate(value int64) error {
 	if intContains(s.cond, value) {
 		return nil
 	}
@@ -406,7 +406,7 @@ func stringContains(slice []string, str string) bool {
 	return false
 }
 
-func intContains(slice []int, str int) bool {
+func intContains(slice []int64, str int64) bool {
 	for _, v := range slice {
 		if v == str {
 			return true
@@ -415,10 +415,10 @@ func intContains(slice []int, str int) bool {
 	return false
 }
 
-func strsToInts(strs []string) ([]int, error) {
-	result := make([]int, 0, len(strs))
+func strsToInts64(strs []string) ([]int64, error) {
+	result := make([]int64, 0, len(strs))
 	for _, v := range strs {
-		val, err := strconv.Atoi(v)
+		val, err := strconv.ParseInt(v, 10, 0)
 		if err != nil {
 			return nil, err
 		}

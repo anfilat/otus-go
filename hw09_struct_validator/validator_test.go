@@ -40,6 +40,19 @@ type (
 		Body string `json:"omitempty"`
 	}
 
+	PrivateField struct {
+		Login    string
+		password string `validate:"in:123456,pass"`
+	}
+
+	Ints struct {
+		IntField   int   `validate:"min:1|max:100"`
+		Int8Field  int8  `validate:"min:1|max:100"`
+		Int16Field int16 `validate:"min:1|max:100"`
+		Int32Field int32 `validate:"min:1|max:100"`
+		Int64Field int64 `validate:"min:1|max:100"`
+	}
+
 	Shape struct {
 		Width  float64 `validate:"min:10"`
 		Height float64 `validate:"max:50"`
@@ -67,11 +80,6 @@ type (
 
 	WrongCond4 struct {
 		Value int `validate:"min"`
-	}
-
-	PrivateField struct {
-		Login    string
-		password string `validate:"in:123456,pass"`
 	}
 )
 
@@ -136,6 +144,16 @@ func TestValidateSuccess(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			in: Ints{
+				IntField:   42,
+				Int8Field:  42,
+				Int16Field: 42,
+				Int32Field: 42,
+				Int64Field: 42,
+			},
+			expectedErr: nil,
+		},
 	}
 
 	for i, tt := range tests {
@@ -149,7 +167,7 @@ func TestValidateSuccess(t *testing.T) {
 const wrongRegexp = "+"
 
 func TestValidateFail(t *testing.T) {
-	_, atoiErr := strconv.Atoi("oops")
+	_, atoiErr := strconv.ParseInt("oops", 10, 0)
 	_, regexpErr := regexp.Compile(wrongRegexp)
 
 	tests := []struct {
@@ -243,6 +261,22 @@ func TestValidateFail(t *testing.T) {
 			},
 			expectedErr: ValidationErrors{
 				ValidationError{Field: "Code", Err: ErrIntIn},
+			},
+		},
+		{
+			in: Ints{
+				IntField:   0,
+				Int8Field:  0,
+				Int16Field: 0,
+				Int32Field: 0,
+				Int64Field: 100500,
+			},
+			expectedErr: ValidationErrors{
+				ValidationError{Field: "IntField", Err: ErrIntMin},
+				ValidationError{Field: "Int8Field", Err: ErrIntMin},
+				ValidationError{Field: "Int16Field", Err: ErrIntMin},
+				ValidationError{Field: "Int32Field", Err: ErrIntMin},
+				ValidationError{Field: "Int64Field", Err: ErrIntMax},
 			},
 		},
 	}
