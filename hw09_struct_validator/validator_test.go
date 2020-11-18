@@ -159,7 +159,7 @@ func TestValidateFail(t *testing.T) {
 			in: Roulette{
 				Value: 0,
 			},
-			expectedErr: ErrIncorrectUse{reason: UnknownRule, rule: "odd"},
+			expectedErr: ErrIncorrectUse{reason: UnknownRule, field: "Value", rule: "odd"},
 		},
 		{
 			in: Piece{

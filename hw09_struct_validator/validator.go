@@ -106,230 +106,291 @@ func Validate(v interface{}) error {
 
 func validateField(errs ValidationErrors, typ reflect.StructField, value reflect.Value, validateTag string) (ValidationErrors, error) {
 	kind := typ.Type.Kind()
-	name := typ.Name
+
+	if kind == reflect.Slice {
+		return validateFieldSlice(errs, typ, value, validateTag)
+	}
+
+	field := typ.Name
+	var rules fieldRules
+	var err error
 
 	switch kind {
 	case reflect.String:
-		rules, err := fillStrValidateRules(validateTag, name)
-		if err != nil {
-			return nil, err
-		}
-		errs = rules.check(errs, name, value)
+		rules, err = fillStringRules(field, validateTag)
 	case reflect.Int:
-		rules, err := fillIntValidateRules(validateTag, name)
-		if err != nil {
-			return nil, err
-		}
-		errs = rules.check(errs, name, value)
-	case reflect.Slice:
-		sliceKind := typ.Type.Elem().Kind()
-		switch sliceKind {
-		case reflect.String:
-			rules, err := fillStrValidateRules(validateTag, name)
-			if err != nil {
-				return nil, err
-			}
-			errs = rules.checkSlice(errs, name, value)
-		case reflect.Int:
-			rules, err := fillIntValidateRules(validateTag, name)
-			if err != nil {
-				return nil, err
-			}
-			errs = rules.checkSlice(errs, name, value)
-		default:
-			return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: name, kind: sliceKind}
-		}
+		rules, err = fillIntRules(field, validateTag)
 	default:
-		return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: name, kind: kind}
+		return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: kind}
 	}
+
+	if err != nil {
+		return nil, err
+	}
+	errs = rules.validate(errs, value)
 	return errs, nil
 }
 
-// требование линтера вручную оптимизировать структуру по выравниванию - странное, это работа компилятора
-//nolint:maligned
-type strValidateRules struct {
-	lenIs     bool
-	lenVal    int
-	regexpIs  bool
-	regexpVal *regexp.Regexp
-	inIs      bool
-	inVal     []string
+func validateFieldSlice(errs ValidationErrors, typ reflect.StructField, value reflect.Value, validateTag string) (ValidationErrors, error) {
+	kind := typ.Type.Elem().Kind()
+	field := typ.Name
+	var rules fieldRules
+	var err error
+
+	switch kind {
+	case reflect.String:
+		rules, err = fillStringRules(field, validateTag)
+	case reflect.Int:
+		rules, err = fillIntRules(field, validateTag)
+	default:
+		return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: kind}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	errs = rules.validateSlice(errs, value)
+	return errs, nil
 }
 
-func fillStrValidateRules(value, name string) (*strValidateRules, error) {
+type fieldRules interface {
+	validate(errs ValidationErrors, value reflect.Value) ValidationErrors
+	validateSlice(errs ValidationErrors, value reflect.Value) ValidationErrors
+}
+
+// string validations
+
+func fillStringRules(field, value string) (fieldRules, error) {
+	rules := &stringRules{
+		field: field,
+	}
 	strs := strings.Split(value, "|")
-	rules := &strValidateRules{}
-	for _, str := range strs {
-		pair := strings.SplitN(str, ":", 2)
-		if len(pair) != 2 {
-			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: name, rule: str}
-		}
-		ruleName := pair[0]
-		ruleValue := pair[1]
-		switch ruleName {
-		case "len":
-			val, err := strconv.Atoi(ruleValue)
-			if err != nil {
-				return nil, ErrIncorrectUse{reason: IncorrectCondition, field: name, rule: ruleName, err: err}
-			}
-			rules.lenIs = true
-			rules.lenVal = val
-		case "regexp":
-			rg, err := regexp.Compile(ruleValue)
-			if err != nil {
-				return nil, ErrIncorrectUse{reason: IncorrectCondition, field: name, rule: ruleName, err: err}
-			}
-			rules.regexpIs = true
-			rules.regexpVal = rg
-		case "in":
-			values := strings.Split(ruleValue, ",")
-			rules.inIs = true
-			rules.inVal = values
-		default:
-			return nil, ErrIncorrectUse{reason: UnknownRule, field: name, rule: ruleName}
-		}
-	}
-	return rules, nil
-}
-
-func (r *strValidateRules) checkSlice(errs ValidationErrors, name string, value reflect.Value) ValidationErrors {
-	for i := 0; i < value.Len(); i++ {
-		errs = r.check(errs, name, value.Index(i))
-	}
-	return errs
-}
-
-func (r *strValidateRules) check(errs ValidationErrors, name string, value reflect.Value) ValidationErrors {
-	val := value.String()
-	errs = r.checkLen(errs, name, val)
-	errs = r.checkRegexp(errs, name, val)
-	errs = r.checkIn(errs, name, val)
-	return errs
-}
-
-func (r *strValidateRules) checkLen(errs ValidationErrors, name, value string) ValidationErrors {
-	if !r.lenIs {
-		return errs
-	}
-	if len(value) == r.lenVal {
-		return errs
-	}
-	return append(errs, ValidationError{Field: name, Err: ErrStrLen})
-}
-
-func (r *strValidateRules) checkRegexp(errs ValidationErrors, name, value string) ValidationErrors {
-	if !r.regexpIs {
-		return errs
-	}
-	if r.regexpVal.MatchString(value) {
-		return errs
-	}
-	return append(errs, ValidationError{Field: name, Err: ErrStrRegexp})
-}
-
-func (r *strValidateRules) checkIn(errs ValidationErrors, name, value string) ValidationErrors {
-	if !r.inIs {
-		return errs
-	}
-	if stringContains(r.inVal, value) {
-		return errs
-	}
-	return append(errs, ValidationError{Field: name, Err: ErrStrIn})
-}
-
-// требование линтера вручную оптимизировать структуру по выравниванию - странное, это работа компилятора
-//nolint:maligned
-type intValidateRules struct {
-	minIs  bool
-	minVal int
-	maxIs  bool
-	maxVal int
-	inIs   bool
-	inVal  []int
-}
-
-func fillIntValidateRules(value, name string) (*intValidateRules, error) {
-	strs := strings.Split(value, "|")
-	rules := &intValidateRules{}
 	for _, str := range strs {
 		pair := strings.Split(str, ":")
 		if len(pair) != 2 {
-			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: name, rule: str}
+			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: str}
 		}
+
 		ruleName := pair[0]
 		ruleValue := pair[1]
+		var rule stringRule
+		var err error
 		switch ruleName {
-		case "min":
-			val, err := strconv.Atoi(ruleValue)
-			if err != nil {
-				return nil, ErrIncorrectUse{reason: IncorrectCondition, field: name, rule: ruleName, err: err}
-			}
-			rules.minIs = true
-			rules.minVal = val
-		case "max":
-			val, err := strconv.Atoi(ruleValue)
-			if err != nil {
-				return nil, ErrIncorrectUse{reason: IncorrectCondition, field: name, rule: ruleName, err: err}
-			}
-			rules.maxIs = true
-			rules.maxVal = val
+		case "len":
+			rule, err = newStrLen(ruleValue)
+		case "regexp":
+			rule, err = newStrRegexp(ruleValue)
 		case "in":
-			values, err := strsToInts(strings.Split(ruleValue, ","))
-			if err != nil {
-				return nil, ErrIncorrectUse{reason: IncorrectCondition, field: name, rule: ruleName, err: err}
-			}
-			rules.inIs = true
-			rules.inVal = values
+			rule = newStrIn(ruleValue)
 		default:
-			return nil, ErrIncorrectUse{reason: UnknownRule, rule: ruleName}
+			return nil, ErrIncorrectUse{reason: UnknownRule, field: field, rule: ruleName}
 		}
+		if err != nil {
+			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: ruleName, err: err}
+		}
+		rules.rules = append(rules.rules, rule)
 	}
 	return rules, nil
 }
 
-func (r *intValidateRules) checkSlice(errs ValidationErrors, name string, value reflect.Value) ValidationErrors {
+type stringRule interface {
+	validate(value string) error
+}
+
+type stringRules struct {
+	field string
+	rules []stringRule
+}
+
+func (r *stringRules) validate(errs ValidationErrors, value reflect.Value) ValidationErrors {
+	val := value.String()
+	for _, rule := range r.rules {
+		err := rule.validate(val)
+		if err != nil {
+			errs = append(errs, ValidationError{Field: r.field, Err: err})
+		}
+	}
+	return errs
+}
+
+func (r *stringRules) validateSlice(errs ValidationErrors, value reflect.Value) ValidationErrors {
 	for i := 0; i < value.Len(); i++ {
-		errs = r.check(errs, name, value.Index(i))
+		errs = r.validate(errs, value.Index(i))
 	}
 	return errs
 }
 
-func (r *intValidateRules) check(errs ValidationErrors, name string, value reflect.Value) ValidationErrors {
+type strLen struct {
+	cond int
+}
+
+func newStrLen(value string) (*strLen, error) {
+	val, err := strconv.Atoi(value)
+	if err != nil {
+		return nil, err
+	}
+	return &strLen{cond: val}, nil
+}
+
+func (s strLen) validate(value string) error {
+	if len(value) == s.cond {
+		return nil
+	}
+	return ErrStrLen
+}
+
+type strRegexp struct {
+	cond *regexp.Regexp
+}
+
+func newStrRegexp(value string) (*strRegexp, error) {
+	rg, err := regexp.Compile(value)
+	if err != nil {
+		return nil, err
+	}
+	return &strRegexp{cond: rg}, nil
+}
+
+func (s strRegexp) validate(value string) error {
+	if s.cond.MatchString(value) {
+		return nil
+	}
+	return ErrStrRegexp
+}
+
+type strIn struct {
+	cond []string
+}
+
+func newStrIn(value string) *strIn {
+	val := strings.Split(value, ",")
+	return &strIn{cond: val}
+}
+
+func (s strIn) validate(value string) error {
+	if stringContains(s.cond, value) {
+		return nil
+	}
+	return ErrStrIn
+}
+
+// int validations
+
+func fillIntRules(field, value string) (fieldRules, error) {
+	rules := &intRules{
+		field: field,
+	}
+	strs := strings.Split(value, "|")
+	for _, str := range strs {
+		pair := strings.Split(str, ":")
+		if len(pair) != 2 {
+			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: str}
+		}
+
+		ruleName := pair[0]
+		ruleValue := pair[1]
+		var rule intRule
+		var err error
+		switch ruleName {
+		case "min":
+			rule, err = newIntMin(ruleValue)
+		case "max":
+			rule, err = newIntMax(ruleValue)
+		case "in":
+			rule, err = newIntIn(ruleValue)
+		default:
+			return nil, ErrIncorrectUse{reason: UnknownRule, field: field, rule: ruleName}
+		}
+		if err != nil {
+			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: ruleName, err: err}
+		}
+		rules.rules = append(rules.rules, rule)
+	}
+	return rules, nil
+}
+
+type intRule interface {
+	validate(value int) error
+}
+
+type intRules struct {
+	field string
+	rules []intRule
+}
+
+func (r *intRules) validate(errs ValidationErrors, value reflect.Value) ValidationErrors {
 	val := int(value.Int())
-	errs = r.checkMin(errs, name, val)
-	errs = r.checkMax(errs, name, val)
-	errs = r.checkIn(errs, name, val)
+	for _, rule := range r.rules {
+		err := rule.validate(val)
+		if err != nil {
+			errs = append(errs, ValidationError{Field: r.field, Err: err})
+		}
+	}
 	return errs
 }
 
-func (r *intValidateRules) checkMin(errs ValidationErrors, name string, value int) ValidationErrors {
-	if !r.minIs {
-		return errs
+func (r *intRules) validateSlice(errs ValidationErrors, value reflect.Value) ValidationErrors {
+	for i := 0; i < value.Len(); i++ {
+		errs = r.validate(errs, value.Index(i))
 	}
-	if value >= r.minVal {
-		return errs
-	}
-	return append(errs, ValidationError{Field: name, Err: ErrIntMin})
+	return errs
 }
 
-func (r *intValidateRules) checkMax(errs ValidationErrors, name string, value int) ValidationErrors {
-	if !r.maxIs {
-		return errs
-	}
-	if value <= r.maxVal {
-		return errs
-	}
-	return append(errs, ValidationError{Field: name, Err: ErrIntMax})
+type intMin struct {
+	cond int
 }
 
-func (r *intValidateRules) checkIn(errs ValidationErrors, name string, value int) ValidationErrors {
-	if !r.inIs {
-		return errs
+func newIntMin(value string) (*intMin, error) {
+	val, err := strconv.Atoi(value)
+	if err != nil {
+		return nil, err
 	}
-	if intContains(r.inVal, value) {
-		return errs
+	return &intMin{cond: val}, nil
+}
+
+func (s intMin) validate(value int) error {
+	if value >= s.cond {
+		return nil
 	}
-	return append(errs, ValidationError{Field: name, Err: ErrIntIn})
+	return ErrIntMin
+}
+
+type intMax struct {
+	cond int
+}
+
+func newIntMax(value string) (*intMax, error) {
+	val, err := strconv.Atoi(value)
+	if err != nil {
+		return nil, err
+	}
+	return &intMax{cond: val}, nil
+}
+
+func (s intMax) validate(value int) error {
+	if value <= s.cond {
+		return nil
+	}
+	return ErrIntMax
+}
+
+type intIn struct {
+	cond []int
+}
+
+func newIntIn(value string) (*intIn, error) {
+	val, err := strsToInts(strings.Split(value, ","))
+	if err != nil {
+		return nil, err
+	}
+	return &intIn{cond: val}, nil
+}
+
+func (s intIn) validate(value int) error {
+	if intContains(s.cond, value) {
+		return nil
+	}
+	return ErrIntIn
 }
 
 func stringContains(slice []string, str string) bool {
