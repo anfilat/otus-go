@@ -68,6 +68,11 @@ type (
 	WrongCond4 struct {
 		Value int `validate:"min"`
 	}
+
+	PrivateField struct {
+		Login    string
+		password string `validate:"in:123456,pass"`
+	}
 )
 
 func TestValidateSuccess(t *testing.T) {
@@ -121,6 +126,13 @@ func TestValidateSuccess(t *testing.T) {
 			in: Response{
 				Code: 200,
 				Body: "content",
+			},
+			expectedErr: nil,
+		},
+		{
+			in: PrivateField{
+				Login:    "somebody",
+				password: "dv740Z_I!hrU&aW11dWYbrQ$t$QHez1*r@x%`WBU",
 			},
 			expectedErr: nil,
 		},

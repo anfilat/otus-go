@@ -85,6 +85,10 @@ func Validate(v interface{}) error {
 	var errs ValidationErrors
 	for i := 0; i < value.NumField(); i++ {
 		fieldType := value.Type().Field(i)
+		if fieldType.PkgPath != "" {
+			continue // непубличные поля не валидируются
+		}
+
 		validateTag := fieldType.Tag.Get("validate")
 		if validateTag == "" {
 			continue
