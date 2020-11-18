@@ -1,7 +1,6 @@
 package hw09_struct_validator //nolint:golint,stylecheck
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -43,15 +42,6 @@ func (e ErrIncorrectUse) Error() string {
 func (e ErrIncorrectUse) Unwrap() error {
 	return e.err
 }
-
-// ошибки, обнаруживаемые валидатором.
-
-var ErrStrLen = errors.New("string length is not equal to required")
-var ErrStrRegexp = errors.New("string does not match the regexp")
-var ErrStrIn = errors.New("string is not included in the specified set")
-var ErrIntMin = errors.New("number is less than specified")
-var ErrIntMax = errors.New("number is greater than specified")
-var ErrIntIn = errors.New("number is not included in the specified set")
 
 type ValidationError struct {
 	Field string
@@ -240,7 +230,7 @@ func (s strLen) validate(value string) error {
 	if len(value) == s.cond {
 		return nil
 	}
-	return ErrStrLen
+	return fmt.Errorf("string length %d is not equal to required %d", len(value), s.cond)
 }
 
 type strRegexp struct {
@@ -259,7 +249,7 @@ func (s strRegexp) validate(value string) error {
 	if s.cond.MatchString(value) {
 		return nil
 	}
-	return ErrStrRegexp
+	return fmt.Errorf("string `%s` does not match the regexp `%v`", value, s.cond)
 }
 
 type strIn struct {
@@ -275,7 +265,7 @@ func (s strIn) validate(value string) error {
 	if stringContains(s.cond, value) {
 		return nil
 	}
-	return ErrStrIn
+	return fmt.Errorf("string `%s` is not included in the specified set %v", value, s.cond)
 }
 
 // int validations
@@ -356,7 +346,7 @@ func (s intMin) validate(value int64) error {
 	if value >= s.cond {
 		return nil
 	}
-	return ErrIntMin
+	return fmt.Errorf("number %d is less than specified %d", value, s.cond)
 }
 
 type intMax struct {
@@ -375,7 +365,7 @@ func (s intMax) validate(value int64) error {
 	if value <= s.cond {
 		return nil
 	}
-	return ErrIntMax
+	return fmt.Errorf("number %d is greater than specified %d", value, s.cond)
 }
 
 type intIn struct {
@@ -394,7 +384,7 @@ func (s intIn) validate(value int64) error {
 	if intContains(s.cond, value) {
 		return nil
 	}
-	return ErrIntIn
+	return fmt.Errorf("number %d is not included in the specified set %v", value, s.cond)
 }
 
 func stringContains(slice []string, str string) bool {

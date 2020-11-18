@@ -167,6 +167,7 @@ func TestValidateSuccess(t *testing.T) {
 const wrongRegexp = "+"
 
 func TestValidateFail(t *testing.T) {
+	emailRG := regexp.MustCompile("^\\w+@\\w+\\.\\w+$")
 	_, atoiErr := strconv.ParseInt("oops", 10, 0)
 	_, regexpErr := regexp.Compile(wrongRegexp)
 
@@ -224,19 +225,19 @@ func TestValidateFail(t *testing.T) {
 		{
 			in: User{},
 			expectedErr: ValidationErrors{
-				ValidationError{Field: "ID", Err: ErrStrLen},
-				ValidationError{Field: "Age", Err: ErrIntMin},
-				ValidationError{Field: "Email", Err: ErrStrRegexp},
-				ValidationError{Field: "Role", Err: ErrStrIn},
+				ValidationError{Field: "ID", Err: fmt.Errorf("string length 0 is not equal to required 36")},
+				ValidationError{Field: "Age", Err: fmt.Errorf("number %d is less than specified %d", 0, 18)},
+				ValidationError{Field: "Email", Err: fmt.Errorf("string `%s` does not match the regexp `%v`", "", emailRG)},
+				ValidationError{Field: "Role", Err: fmt.Errorf("string `%s` is not included in the specified set %v", "", []string{"admin", "stuff"})},
 			},
 		},
 		{
 			in: &User{},
 			expectedErr: ValidationErrors{
-				ValidationError{Field: "ID", Err: ErrStrLen},
-				ValidationError{Field: "Age", Err: ErrIntMin},
-				ValidationError{Field: "Email", Err: ErrStrRegexp},
-				ValidationError{Field: "Role", Err: ErrStrIn},
+				ValidationError{Field: "ID", Err: fmt.Errorf("string length 0 is not equal to required 36")},
+				ValidationError{Field: "Age", Err: fmt.Errorf("number %d is less than specified %d", 0, 18)},
+				ValidationError{Field: "Email", Err: fmt.Errorf("string `%s` does not match the regexp `%v`", "", emailRG)},
+				ValidationError{Field: "Role", Err: fmt.Errorf("string `%s` is not included in the specified set %v", "", []string{"admin", "stuff"})},
 			},
 		},
 		{
@@ -248,11 +249,11 @@ func TestValidateFail(t *testing.T) {
 				Phones: []string{"03"},
 			},
 			expectedErr: ValidationErrors{
-				ValidationError{Field: "ID", Err: ErrStrLen},
-				ValidationError{Field: "Age", Err: ErrIntMax},
-				ValidationError{Field: "Email", Err: ErrStrRegexp},
-				ValidationError{Field: "Role", Err: ErrStrIn},
-				ValidationError{Field: "Phones", Err: ErrStrLen},
+				ValidationError{Field: "ID", Err: fmt.Errorf("string length 9 is not equal to required 36")},
+				ValidationError{Field: "Age", Err: fmt.Errorf("number %d is greater than specified %d", 51, 50)},
+				ValidationError{Field: "Email", Err: fmt.Errorf("string `%s` does not match the regexp `%v`", "test.mail.ru", emailRG)},
+				ValidationError{Field: "Role", Err: fmt.Errorf("string `%s` is not included in the specified set %v", "hacker", []string{"admin", "stuff"})},
+				ValidationError{Field: "Phones", Err: fmt.Errorf("string length 2 is not equal to required 11")},
 			},
 		},
 		{
@@ -260,7 +261,7 @@ func TestValidateFail(t *testing.T) {
 				Code: 418,
 			},
 			expectedErr: ValidationErrors{
-				ValidationError{Field: "Code", Err: ErrIntIn},
+				ValidationError{Field: "Code", Err: fmt.Errorf("number %d is not included in the specified set %d", 418, []int{200, 404, 500})},
 			},
 		},
 		{
@@ -272,11 +273,11 @@ func TestValidateFail(t *testing.T) {
 				Int64Field: 100500,
 			},
 			expectedErr: ValidationErrors{
-				ValidationError{Field: "IntField", Err: ErrIntMin},
-				ValidationError{Field: "Int8Field", Err: ErrIntMin},
-				ValidationError{Field: "Int16Field", Err: ErrIntMin},
-				ValidationError{Field: "Int32Field", Err: ErrIntMin},
-				ValidationError{Field: "Int64Field", Err: ErrIntMax},
+				ValidationError{Field: "IntField", Err: fmt.Errorf("number %d is less than specified %d", 0, 1)},
+				ValidationError{Field: "Int8Field", Err: fmt.Errorf("number %d is less than specified %d", 0, 1)},
+				ValidationError{Field: "Int16Field", Err: fmt.Errorf("number %d is less than specified %d", 0, 1)},
+				ValidationError{Field: "Int32Field", Err: fmt.Errorf("number %d is less than specified %d", 0, 1)},
+				ValidationError{Field: "Int64Field", Err: fmt.Errorf("number %d is greater than specified %d", 100500, 100)},
 			},
 		},
 	}
