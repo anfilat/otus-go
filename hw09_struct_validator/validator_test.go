@@ -121,6 +121,28 @@ var ints = Ints{
 	Int64Field: 42,
 }
 
+var emptyUser = User{}
+
+var wrongUser = User{
+	ID:     "012345678",
+	Age:    51,
+	Email:  "test.mail.ru",
+	Role:   "hacker",
+	Phones: []string{"03"},
+}
+
+var wrongResponse = Response{
+	Code: 418,
+}
+
+var wrongInts = Ints{
+	IntField:   0,
+	Int8Field:  0,
+	Int16Field: 0,
+	Int32Field: 0,
+	Int64Field: 100500,
+}
+
 func TestValidateSuccess(t *testing.T) {
 	tests := []struct {
 		name string
@@ -227,7 +249,7 @@ func TestValidateFail(t *testing.T) {
 			expectedErr: ErrIncorrectUse{reason: IncorrectCondition, field: "Value", rule: "min"},
 		},
 		{
-			in: User{},
+			in: emptyUser,
 			expectedErr: ValidationErrors{
 				ValidationError{Field: "ID", Err: fmt.Errorf("string length 0 is not equal to required 36")},
 				ValidationError{Field: "Age", Err: fmt.Errorf("number %d is less than specified %d", 0, 18)},
@@ -236,7 +258,7 @@ func TestValidateFail(t *testing.T) {
 			},
 		},
 		{
-			in: &User{},
+			in: &emptyUser,
 			expectedErr: ValidationErrors{
 				ValidationError{Field: "ID", Err: fmt.Errorf("string length 0 is not equal to required 36")},
 				ValidationError{Field: "Age", Err: fmt.Errorf("number %d is less than specified %d", 0, 18)},
@@ -245,13 +267,7 @@ func TestValidateFail(t *testing.T) {
 			},
 		},
 		{
-			in: User{
-				ID:     "012345678",
-				Age:    51,
-				Email:  "test.mail.ru",
-				Role:   "hacker",
-				Phones: []string{"03"},
-			},
+			in: wrongUser,
 			expectedErr: ValidationErrors{
 				ValidationError{Field: "ID", Err: fmt.Errorf("string length 9 is not equal to required 36")},
 				ValidationError{Field: "Age", Err: fmt.Errorf("number %d is greater than specified %d", 51, 50)},
@@ -261,21 +277,13 @@ func TestValidateFail(t *testing.T) {
 			},
 		},
 		{
-			in: Response{
-				Code: 418,
-			},
+			in: wrongResponse,
 			expectedErr: ValidationErrors{
 				ValidationError{Field: "Code", Err: fmt.Errorf("number %d is not included in the specified set %d", 418, []int{200, 404, 500})},
 			},
 		},
 		{
-			in: Ints{
-				IntField:   0,
-				Int8Field:  0,
-				Int16Field: 0,
-				Int32Field: 0,
-				Int64Field: 100500,
-			},
+			in: wrongInts,
 			expectedErr: ValidationErrors{
 				ValidationError{Field: "IntField", Err: fmt.Errorf("number %d is less than specified %d", 0, 1)},
 				ValidationError{Field: "Int8Field", Err: fmt.Errorf("number %d is less than specified %d", 0, 1)},
@@ -328,4 +336,28 @@ func TestErrIncorrectUse(t *testing.T) {
 			require.Equal(t, tt.expected, tt.in.Error())
 		})
 	}
+}
+
+func BenchmarkValidateSuccess(b *testing.B) {
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = Validate(user)
+			_ = Validate(app)
+			_ = Validate(token)
+			_ = Validate(response)
+			_ = Validate(privateField)
+			_ = Validate(ints)
+		}
+	})
+}
+
+func BenchmarkValidateFail(b *testing.B) {
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = Validate(emptyUser)
+			_ = Validate(wrongUser)
+			_ = Validate(wrongResponse)
+			_ = Validate(wrongInts)
+		}
+	})
 }

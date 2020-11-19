@@ -91,8 +91,10 @@ type strRegexp struct {
 	cond *regexp.Regexp
 }
 
+var rgCache = newRegexpCache()
+
 func newStrRegexp(value string) (*strRegexp, error) {
-	rg, err := regexp.Compile(value)
+	rg, err := rgCache.get(value)
 	if err != nil {
 		return nil, err
 	}
