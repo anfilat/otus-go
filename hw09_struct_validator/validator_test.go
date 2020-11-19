@@ -83,83 +83,87 @@ type (
 	}
 )
 
+var user = User{
+	ID:     "012345678901234567890123456789123456",
+	Name:   "Somebody",
+	Age:    20,
+	Email:  "test@mail.ru",
+	Role:   "admin",
+	Phones: []string{"79270000000"},
+	meta:   []byte("{}"),
+}
+
+var app = App{
+	Version: "12345",
+}
+
+var token = Token{
+	Header:    []byte("12345"),
+	Payload:   []byte("12345"),
+	Signature: []byte("12345"),
+}
+
+var response = Response{
+	Code: 200,
+	Body: "content",
+}
+
+var privateField = PrivateField{
+	Login:    "somebody",
+	password: "dv740Z_I!hrU&aW11dWYbrQ$t$QHez1*r@x%`WBU",
+}
+
+var ints = Ints{
+	IntField:   42,
+	Int8Field:  42,
+	Int16Field: 42,
+	Int32Field: 42,
+	Int64Field: 42,
+}
+
 func TestValidateSuccess(t *testing.T) {
 	tests := []struct {
-		in          interface{}
-		expectedErr error
+		name string
+		in   interface{}
 	}{
 		{
-			in:          nil,
-			expectedErr: nil,
+			name: "nil",
+			in:   nil,
 		},
 		{
-			in: User{
-				ID:     "012345678901234567890123456789123456",
-				Name:   "Somebody",
-				Age:    20,
-				Email:  "test@mail.ru",
-				Role:   "admin",
-				Phones: []string{"79270000000"},
-				meta:   []byte("{}"),
-			},
-			expectedErr: nil,
+			name: "User",
+			in:   user,
 		},
 		{
-			in: &User{
-				ID:     "012345678901234567890123456789123456",
-				Name:   "Somebody",
-				Age:    20,
-				Email:  "test@mail.ru",
-				Role:   "admin",
-				Phones: []string{"79270000000"},
-				meta:   []byte("{}"),
-			},
-			expectedErr: nil,
+			name: "&User",
+			in:   &user,
 		},
 		{
-			in: App{
-				Version: "12345",
-			},
-			expectedErr: nil,
+			name: "App",
+			in:   app,
 		},
 		{
-			in: Token{
-				Header:    []byte("12345"),
-				Payload:   []byte("12345"),
-				Signature: []byte("12345"),
-			},
-			expectedErr: nil,
+			name: "Token",
+			in:   token,
 		},
 		{
-			in: Response{
-				Code: 200,
-				Body: "content",
-			},
-			expectedErr: nil,
+			name: "Response",
+			in:   response,
 		},
 		{
-			in: PrivateField{
-				Login:    "somebody",
-				password: "dv740Z_I!hrU&aW11dWYbrQ$t$QHez1*r@x%`WBU",
-			},
-			expectedErr: nil,
+			name: "PrivateField",
+			in:   privateField,
 		},
 		{
-			in: Ints{
-				IntField:   42,
-				Int8Field:  42,
-				Int16Field: 42,
-				Int32Field: 42,
-				Int64Field: 42,
-			},
-			expectedErr: nil,
+			name: "Ints",
+			in:   ints,
 		},
 	}
 
-	for i, tt := range tests {
-		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			err := Validate(tt.in)
-			require.Equal(t, tt.expectedErr, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -320,7 +324,7 @@ func TestErrIncorrectUse(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(fmt.Sprintf("case %s", tt.name), func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.expected, tt.in.Error())
 		})
 	}
