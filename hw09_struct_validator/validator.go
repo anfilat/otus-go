@@ -50,16 +50,22 @@ func Validate(v interface{}) error {
 	return validateStruct(rules, value)
 }
 
+// Правила валидации сохраняются для всех полей структуры, даже для тех, которые не надо валидировать.
+// В результате при валидации не надо матчить правила к полям по имени поля,
+// можно просто последовательно перебирать поля
+
 func parseStructRules(value reflect.Value) (structRules, error) {
 	var sr structRules
 	for i := 0; i < value.NumField(); i++ {
 		fieldType := value.Type().Field(i)
 		if fieldType.PkgPath != "" {
+			sr = append(sr, nil)
 			continue // непубличные поля не валидируются
 		}
 
 		validateTag := fieldType.Tag.Get(validatorTag)
 		if validateTag == "" {
+			sr = append(sr, nil)
 			continue
 		}
 
@@ -67,9 +73,7 @@ func parseStructRules(value reflect.Value) (structRules, error) {
 		if err != nil {
 			return nil, err
 		}
-		if rules != nil {
-			sr = append(sr, rules)
-		}
+		sr = append(sr, rules)
 	}
 	return sr, nil
 }
@@ -104,8 +108,12 @@ func parseFieldRules(typ reflect.StructField, validateTag string) (fieldRules, e
 
 func validateStruct(sr structRules, value reflect.Value) error {
 	var errs ValidationErrors
-	for _, rules := range sr {
-		errs = rules.validate(errs, value.FieldByName(rules.fieldName()))
+	for i := 0; i < value.NumField(); i++ {
+		rules := sr[i]
+		if rules == nil {
+			continue
+		}
+		errs = rules.validate(errs, value.Field(i))
 	}
 	if errs == nil {
 		return nil
