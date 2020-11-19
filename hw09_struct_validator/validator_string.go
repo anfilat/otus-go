@@ -8,9 +8,10 @@ import (
 	"strings"
 )
 
-func fillStringRules(field, value string) (fieldRules, error) {
+func fillStringRules(field, value string, vKind validateKind) (fieldRules, error) {
 	rules := &stringRules{
 		field: field,
+		vKind: vKind,
 	}
 	strs := strings.Split(value, "|")
 	for _, str := range strs {
@@ -38,6 +39,9 @@ func fillStringRules(field, value string) (fieldRules, error) {
 		}
 		rules.rules = append(rules.rules, rule)
 	}
+	if len(rules.rules) == 0 {
+		return nil, nil
+	}
 	return rules, nil
 }
 
@@ -47,10 +51,24 @@ type stringRule interface {
 
 type stringRules struct {
 	field string
+	vKind validateKind
 	rules []stringRule
 }
 
+func (r *stringRules) fieldName() string {
+	return r.field
+}
+
 func (r *stringRules) validate(errs ValidationErrors, value reflect.Value) ValidationErrors {
+	switch r.vKind {
+	case validateRegular:
+		return r.validateRegular(errs, value)
+	default:
+		return r.validateSlice(errs, value)
+	}
+}
+
+func (r *stringRules) validateRegular(errs ValidationErrors, value reflect.Value) ValidationErrors {
 	val := value.String()
 	for _, rule := range r.rules {
 		err := rule.validate(val)
@@ -63,7 +81,7 @@ func (r *stringRules) validate(errs ValidationErrors, value reflect.Value) Valid
 
 func (r *stringRules) validateSlice(errs ValidationErrors, value reflect.Value) ValidationErrors {
 	for i := 0; i < value.Len(); i++ {
-		errs = r.validate(errs, value.Index(i))
+		errs = r.validateRegular(errs, value.Index(i))
 	}
 	return errs
 }
