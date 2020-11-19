@@ -33,7 +33,7 @@ func Validate(v interface{}) error {
 
 	value := reflect.Indirect(reflect.ValueOf(v))
 	if value.Kind() != reflect.Struct {
-		return ErrIncorrectUse{reason: IncorrectKind, kind: value.Kind()}
+		return &ErrIncorrectUse{reason: IncorrectKind, kind: value.Kind()}
 	}
 
 	structType := value.Type()
@@ -93,10 +93,10 @@ func parseFieldRules(typ reflect.StructField, validateTag string) (fieldRules, e
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			rules, err = fillIntRules(field, validateTag, validateSlice)
 		default:
-			return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: sliceKind}
+			return nil, &ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: sliceKind}
 		}
 	default:
-		return nil, ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: kind}
+		return nil, &ErrIncorrectUse{reason: IncorrectFieldType, field: field, kind: kind}
 	}
 
 	return rules, err

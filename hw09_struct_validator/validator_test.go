@@ -2,10 +2,9 @@ package hw09_struct_validator //nolint:golint,stylecheck
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"reflect"
 	"regexp"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -51,35 +50,6 @@ type (
 		Int16Field int16 `validate:"min:1|max:100"`
 		Int32Field int32 `validate:"min:1|max:100"`
 		Int64Field int64 `validate:"min:1|max:100"`
-	}
-
-	Shape struct {
-		Width  float64 `validate:"min:10"`
-		Height float64 `validate:"max:50"`
-	}
-
-	Roulette struct {
-		Value int `validate:"odd:true"`
-	}
-
-	Piece struct {
-		Text string `validate:"spell:true"`
-	}
-
-	WrongCond1 struct {
-		Value string `validate:"len:oops"`
-	}
-
-	WrongCond2 struct {
-		Value string `validate:"regexp:+"`
-	}
-
-	WrongCond3 struct {
-		Value int `validate:"min:oops"`
-	}
-
-	WrongCond4 struct {
-		Value int `validate:"min"`
 	}
 )
 
@@ -190,64 +160,13 @@ func TestValidateSuccess(t *testing.T) {
 	}
 }
 
-const wrongRegexp = "+"
-
 func TestValidateFail(t *testing.T) {
 	emailRG := regexp.MustCompile("^\\w+@\\w+\\.\\w+$")
-	_, atoiErr := strconv.ParseInt("oops", 10, 0)
-	_, regexpErr := regexp.Compile(wrongRegexp)
 
 	tests := []struct {
 		in          interface{}
 		expectedErr error
 	}{
-		{
-			in:          "text",
-			expectedErr: ErrIncorrectUse{reason: IncorrectKind, kind: reflect.String},
-		},
-		{
-			in: Shape{
-				Width:  42,
-				Height: 13,
-			},
-			expectedErr: ErrIncorrectUse{reason: IncorrectFieldType, field: "Width", kind: reflect.Float64},
-		},
-		{
-			in: Roulette{
-				Value: 0,
-			},
-			expectedErr: ErrIncorrectUse{reason: UnknownRule, field: "Value", rule: "odd"},
-		},
-		{
-			in: Piece{
-				Text: "To be, or not to be, that is the question",
-			},
-			expectedErr: ErrIncorrectUse{reason: UnknownRule, field: "Text", rule: "spell"},
-		},
-		{
-			in: WrongCond1{
-				Value: "",
-			},
-			expectedErr: ErrIncorrectUse{reason: IncorrectCondition, field: "Value", rule: "len", err: atoiErr},
-		},
-		{
-			in: WrongCond2{
-				Value: "",
-			},
-			expectedErr: ErrIncorrectUse{reason: IncorrectCondition, field: "Value", rule: "regexp", err: regexpErr},
-		},
-		{
-			in: WrongCond3{
-				Value: 13,
-			},
-			expectedErr: ErrIncorrectUse{reason: IncorrectCondition, field: "Value", rule: "min", err: atoiErr},
-		},
-		{
-			in: WrongCond4{
-				Value: 13,
-			},
-			expectedErr: ErrIncorrectUse{reason: IncorrectCondition, field: "Value", rule: "min"},
-		},
 		{
 			in: emptyUser,
 			expectedErr: ValidationErrors{
@@ -303,37 +222,67 @@ func TestValidateFail(t *testing.T) {
 }
 
 func TestErrIncorrectUse(t *testing.T) {
-	_, atoiErr := strconv.Atoi("oops")
-
 	tests := []struct {
-		name     string
-		in       ErrIncorrectUse
-		expected string
+		name string
+		in   interface{}
 	}{
 		{
-			name:     "IncorrectKind",
-			in:       ErrIncorrectUse{reason: IncorrectKind, kind: reflect.String},
-			expected: "function only accepts structs; got string",
+			name: "IncorrectKind",
+			in:   "text",
 		},
 		{
-			name:     "IncorrectFieldType",
-			in:       ErrIncorrectUse{reason: IncorrectFieldType, field: "rate", kind: reflect.Float64},
-			expected: "field `rate` has unsupported type float64",
+			name: "IncorrectFieldType",
+			in: struct {
+				Width float64 `validate:"min:10"`
+			}{},
 		},
 		{
-			name:     "UnknownRule",
-			in:       ErrIncorrectUse{reason: UnknownRule, field: "rate", rule: "odd"},
-			expected: "field `rate` has unknown rule `odd`",
+			name: "UnknownRule int",
+			in: struct {
+				Value int `validate:"odd:true"`
+			}{},
 		},
 		{
-			name:     "IncorrectCondition",
-			in:       ErrIncorrectUse{reason: IncorrectCondition, field: "rate", rule: "len", err: atoiErr},
-			expected: "field `rate` has incorrect condition: `strconv.Atoi: parsing \"oops\": invalid syntax` for rule `len`",
+			name: "UnknownRule string",
+			in: struct {
+				Text string `validate:"spell:true"`
+			}{},
+		},
+		{
+			name: "IncorrectCondition string-len",
+			in: struct {
+				Value string `validate:"len:oops"`
+			}{},
+		},
+		{
+			name: "IncorrectCondition string-regexp",
+			in: struct {
+				Value string `validate:"regexp:+"`
+			}{},
+		},
+		{
+			name: "IncorrectCondition int-min",
+			in: struct {
+				Value int `validate:"min:oops"`
+			}{},
+		},
+		{
+			name: "IncorrectCondition int-no value",
+			in: struct {
+				Value int `validate:"min"`
+			}{},
+		},
+		{
+			name: "IncorrectCondition int-in",
+			in: struct {
+				Value int `validate:"in:200,-,500"`
+			}{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.expected, tt.in.Error())
+			err := Validate(tt.in)
+			require.True(t, errors.Is(err, &ErrIncorrectUse{}))
 		})
 	}
 }

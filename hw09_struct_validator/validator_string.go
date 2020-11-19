@@ -17,7 +17,7 @@ func fillStringRules(field, value string, vKind validateKind) (fieldRules, error
 	for _, str := range strs {
 		pair := strings.Split(str, ":")
 		if len(pair) != 2 {
-			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: str}
+			return nil, &ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: str}
 		}
 
 		ruleName := pair[0]
@@ -32,10 +32,10 @@ func fillStringRules(field, value string, vKind validateKind) (fieldRules, error
 		case "in":
 			rule = newStrIn(ruleValue)
 		default:
-			return nil, ErrIncorrectUse{reason: UnknownRule, field: field, rule: ruleName}
+			return nil, &ErrIncorrectUse{reason: UnknownRule, field: field, rule: ruleName}
 		}
 		if err != nil {
-			return nil, ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: ruleName, err: err}
+			return nil, &ErrIncorrectUse{reason: IncorrectCondition, field: field, rule: ruleName, err: err}
 		}
 		rules.rules = append(rules.rules, rule)
 	}

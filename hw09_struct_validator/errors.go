@@ -1,6 +1,7 @@
 package hw09_struct_validator //nolint:golint,stylecheck
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -23,7 +24,7 @@ type ErrIncorrectUse struct {
 	err    error
 }
 
-func (e ErrIncorrectUse) Error() string {
+func (e *ErrIncorrectUse) Error() string {
 	switch e.reason {
 	case IncorrectKind:
 		return fmt.Sprintf("function only accepts structs; got %s", e.kind)
@@ -38,6 +39,12 @@ func (e ErrIncorrectUse) Error() string {
 	}
 }
 
-func (e ErrIncorrectUse) Unwrap() error {
+// проверка, что это ошибка программиста, а не ошибка данных.
+func (e *ErrIncorrectUse) Is(target error) bool {
+	var err *ErrIncorrectUse
+	return errors.As(target, &err)
+}
+
+func (e *ErrIncorrectUse) Unwrap() error {
 	return e.err
 }
