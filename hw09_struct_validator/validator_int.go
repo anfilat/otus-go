@@ -101,7 +101,16 @@ func (s intMin) validate(value int64) error {
 	if value >= s.cond {
 		return nil
 	}
-	return fmt.Errorf("number %d is less than specified %d", value, s.cond)
+	return &ErrIntMin{value, s.cond}
+}
+
+type ErrIntMin struct {
+	Value int64
+	Cond  int64
+}
+
+func (e *ErrIntMin) Error() string {
+	return fmt.Sprintf("number %d is less than specified %d", e.Value, e.Cond)
 }
 
 type intMax struct {
@@ -120,7 +129,16 @@ func (s intMax) validate(value int64) error {
 	if value <= s.cond {
 		return nil
 	}
-	return fmt.Errorf("number %d is greater than specified %d", value, s.cond)
+	return &ErrIntMax{value, s.cond}
+}
+
+type ErrIntMax struct {
+	Value int64
+	Cond  int64
+}
+
+func (e *ErrIntMax) Error() string {
+	return fmt.Sprintf("number %d is greater than specified %d", e.Value, e.Cond)
 }
 
 type intIn struct {
@@ -139,5 +157,14 @@ func (s intIn) validate(value int64) error {
 	if intContains(s.cond, value) {
 		return nil
 	}
-	return fmt.Errorf("number %d is not included in the specified set %v", value, s.cond)
+	return &ErrIntIn{value, s.cond}
+}
+
+type ErrIntIn struct {
+	Value int64
+	Cond  []int64
+}
+
+func (e *ErrIntIn) Error() string {
+	return fmt.Sprintf("number %d is not included in the specified set %v", e.Value, e.Cond)
 }

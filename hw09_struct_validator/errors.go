@@ -6,10 +6,10 @@ import (
 	"reflect"
 )
 
-type incorrectUseCase int
+type IncorrectUseCase int
 
 const (
-	IncorrectKind      incorrectUseCase = iota // на валидацию передана не структура
+	IncorrectKind      IncorrectUseCase = iota // на валидацию передана не структура
 	IncorrectFieldType                         // валидация неподдерживаемого типа поля (не int, string, []int, []string)
 	UnknownRule                                // неизвестное правило валидации
 	IncorrectCondition                         // не удается разпарсить параметр валидатора
@@ -17,7 +17,7 @@ const (
 
 // все ошибки неправильного применения валидатора.
 type ErrIncorrectUse struct {
-	reason incorrectUseCase
+	reason IncorrectUseCase
 	kind   reflect.Kind
 	field  string
 	rule   string

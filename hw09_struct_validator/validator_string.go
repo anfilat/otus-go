@@ -102,7 +102,16 @@ func (s strLen) validate(value string) error {
 	if len(value) == s.cond {
 		return nil
 	}
-	return fmt.Errorf("string length %d is not equal to required %d", len(value), s.cond)
+	return &ErrStrLen{len(value), s.cond}
+}
+
+type ErrStrLen struct {
+	Value int
+	Cond  int
+}
+
+func (e *ErrStrLen) Error() string {
+	return fmt.Sprintf("string length %d is not equal to required %d", e.Value, e.Cond)
 }
 
 type strRegexp struct {
@@ -123,7 +132,16 @@ func (s strRegexp) validate(value string) error {
 	if s.cond.MatchString(value) {
 		return nil
 	}
-	return fmt.Errorf("string `%s` does not match the regexp `%v`", value, s.cond)
+	return &ErrStrRegexp{value, s.cond}
+}
+
+type ErrStrRegexp struct {
+	Value string
+	Cond  *regexp.Regexp
+}
+
+func (e *ErrStrRegexp) Error() string {
+	return fmt.Sprintf("string `%s` does not match the regexp `%v`", e.Value, e.Cond)
 }
 
 type strIn struct {
@@ -139,5 +157,14 @@ func (s strIn) validate(value string) error {
 	if stringContains(s.cond, value) {
 		return nil
 	}
-	return fmt.Errorf("string `%s` is not included in the specified set %v", value, s.cond)
+	return &ErrStrIn{value, s.cond}
+}
+
+type ErrStrIn struct {
+	Value string
+	Cond  []string
+}
+
+func (e *ErrStrIn) Error() string {
+	return fmt.Sprintf("string `%s` is not included in the specified set %v", e.Value, e.Cond)
 }
