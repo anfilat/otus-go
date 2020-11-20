@@ -2,31 +2,31 @@ package hw09_struct_validator //nolint:golint,stylecheck
 
 import (
 	"reflect"
-	"sync"
+	"sync/atomic"
 )
 
 type structCache struct {
-	sync.RWMutex
-	values map[reflect.Type]structRules
+	values atomic.Value // map[reflect.Type]structRules
 }
 
 func newStructCache() *structCache {
-	result := &structCache{}
-	result.values = make(map[reflect.Type]structRules)
-	return result
+	values := make(map[reflect.Type]structRules)
+	cache := &structCache{}
+	cache.values.Store(values)
+	return cache
 }
 
 func (sc *structCache) lookup(value reflect.Type) (structRules, bool) {
-	sc.RLock()
-	defer sc.RUnlock()
-
-	v, ok := sc.values[value]
+	v, ok := sc.values.Load().(map[reflect.Type]structRules)[value]
 	return v, ok
 }
 
 func (sc *structCache) add(value reflect.Type, rules structRules) {
-	sc.Lock()
-	defer sc.Unlock()
-
-	sc.values[value] = rules
+	values := sc.values.Load().(map[reflect.Type]structRules)
+	newValues := make(map[reflect.Type]structRules, len(values)+1)
+	for k, v := range values {
+		newValues[k] = v
+	}
+	newValues[value] = rules
+	sc.values.Store(newValues)
 }
