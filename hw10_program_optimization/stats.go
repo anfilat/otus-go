@@ -52,7 +52,7 @@ func getUsers(r io.Reader) (NextUser, error) {
 			return
 		}
 
-		if err = jsoniter.Unmarshal(s.Bytes(), &auser); err != nil {
+		if err = jsoniter.ConfigFastest.Unmarshal(s.Bytes(), &auser); err != nil {
 			err = fmt.Errorf("error with reading user: %w", err)
 			return
 		}
