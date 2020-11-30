@@ -6,11 +6,12 @@ import (
 	"io"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/mailru/easyjson"
 )
 
 // очень хочется убрать здесь все поля кроме Email, но кажется это будет читерство
 
+//easyjson:json
 type User struct {
 	ID       int
 	Name     string
@@ -52,7 +53,7 @@ func getUsers(r io.Reader) (NextUser, error) {
 			return
 		}
 
-		if err = jsoniter.ConfigFastest.Unmarshal(s.Bytes(), &auser); err != nil {
+		if err = easyjson.Unmarshal(s.Bytes(), &auser); err != nil {
 			err = fmt.Errorf("error with reading user: %w", err)
 			return
 		}
