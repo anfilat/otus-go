@@ -22,7 +22,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	go WatchSignals(cancel)
+	go watchSignals(cancel)
 
 	client := NewTelnetClient(address, *timeout, os.Stdin, os.Stdout)
 	err := client.Connect()
@@ -31,13 +31,13 @@ func main() {
 	}
 	defer client.Close()
 
-	go Send(client, cancel)
-	go Receive(client, cancel)
+	go send(client, cancel)
+	go receive(client, cancel)
 
 	<-ctx.Done()
 }
 
-func WatchSignals(cancel context.CancelFunc) {
+func watchSignals(cancel context.CancelFunc) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
@@ -45,18 +45,18 @@ func WatchSignals(cancel context.CancelFunc) {
 	cancel()
 }
 
-func Send(client TelnetClient, cancel context.CancelFunc) {
+func send(client TelnetClient, cancel context.CancelFunc) {
 	err := client.Send()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	cancel()
 }
 
-func Receive(client TelnetClient, cancel context.CancelFunc) {
+func receive(client TelnetClient, cancel context.CancelFunc) {
 	err := client.Receive()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	cancel()
 }

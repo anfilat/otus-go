@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -37,12 +36,8 @@ type client struct {
 }
 
 func (c *client) Connect() error {
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-	defer cancel()
-
 	var err error
-	dialer := &net.Dialer{}
-	c.conn, err = dialer.DialContext(ctx, "tcp", c.address)
+	c.conn, err = net.DialTimeout("tcp", c.address, c.timeout)
 	if err != nil {
 		return fmt.Errorf("cannot connect: %w", err)
 	}
