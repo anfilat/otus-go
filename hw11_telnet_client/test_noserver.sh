@@ -6,7 +6,7 @@ set -xeuo pipefail
 
 go build -o go-telnet
 
-(echo -e "I\nam\nTELNET client\n" && cat 2>/dev/null) | ./go-telnet --timeout=3s localhost 4242 2>/tmp/telnet.out &
+(echo -e "I\nam\nTELNET client\n" && cat 2>/dev/null) | ./go-telnet --timeout=3s "127.0.0.1" 4242 2>/tmp/telnet.out &
 TL_PID=$!
 
 sleep 5
