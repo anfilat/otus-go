@@ -1,21 +1,29 @@
 package logger
 
-import "fmt"
+import (
+	"github.com/sirupsen/logrus"
+)
 
-type Logger struct {
-	// TODO
+type logger struct {
+	logger *logrus.Logger
 }
 
-func New(level string) *Logger {
-	return &Logger{}
+func (l logger) Debug(args ...interface{}) {
+	l.logger.Debug(args...)
 }
 
-func (l Logger) Info(msg string) {
-	fmt.Println(msg)
+func (l logger) Info(args ...interface{}) {
+	l.logger.Info(args...)
 }
 
-func (l Logger) Error(msg string) {
-	// TODO
+func (l logger) Warn(args ...interface{}) {
+	l.logger.Warn(args...)
 }
 
-// TODO
+func (l logger) Error(args ...interface{}) {
+	l.logger.Error(args...)
+}
+
+func (l logger) Fatal(args ...interface{}) {
+	l.logger.Fatal(args...)
+}

@@ -2,28 +2,89 @@ package app
 
 import (
 	"context"
+	"time"
+
+	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/logger"
+	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage"
 )
 
-type App struct {
-	// TODO
+type app struct {
+	logger  logger.Logger
+	storage storage.Storage
 }
 
-type Logger interface {
-	// TODO
+func (a *app) CreateEvent(ctx context.Context, userID int, title, desc string, start, stop time.Time, notif *time.Duration) (id int, err error) {
+	if userID == 0 {
+		err = ErrNoUserID
+		return
+	}
+	if title == "" {
+		err = ErrEmptyTitle
+		return
+	}
+	if start.After(stop) {
+		start, stop = stop, start
+	}
+	if time.Now().After(start) {
+		err = ErrStartInPast
+		return
+	}
+	isBusy, err := a.storage.IsTimeBusy(ctx, start, stop, 0)
+	if err != nil {
+		return
+	}
+	if isBusy {
+		err = ErrDateBusy
+		return
+	}
+
+	return a.storage.Create(ctx, storage.Event{
+		Title:        title,
+		Start:        start,
+		Stop:         stop,
+		Description:  desc,
+		UserID:       userID,
+		Notification: notif,
+	})
 }
 
-type Storage interface {
-	// TODO
+func (a *app) UpdateEvent(ctx context.Context, id int, change storage.Event) error {
+	if change.Title == "" {
+		return ErrEmptyTitle
+	}
+	if change.Start.After(change.Stop) {
+		change.Start, change.Stop = change.Stop, change.Start
+	}
+	if time.Now().After(change.Start) {
+		return ErrStartInPast
+	}
+	isBusy, err := a.storage.IsTimeBusy(ctx, change.Start, change.Stop, id)
+	if err != nil {
+		return err
+	}
+	if isBusy {
+		return ErrDateBusy
+	}
+
+	return a.storage.Update(ctx, id, change)
 }
 
-func New(logger Logger, storage Storage) *App {
-	return &App{}
+func (a *app) DeleteEvent(ctx context.Context, id int) error {
+	return a.storage.Delete(ctx, id)
 }
 
-func (a *App) CreateEvent(ctx context.Context, id string, title string) error {
-	// TODO
-	return nil
-	// return a.storage.CreateEvent(storage.Event{ID: id, Title: title})
+func (a *app) ListAllEvents(ctx context.Context) ([]storage.Event, error) {
+	return a.storage.ListAll(ctx)
 }
 
-// TODO
+func (a *app) ListDayEvents(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	return a.storage.ListDay(ctx, date)
+}
+
+func (a *app) ListWeekEvents(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	return a.storage.ListWeek(ctx, date)
+}
+
+func (a *app) ListMonthEvents(ctx context.Context, date time.Time) ([]storage.Event, error) {
+	return a.storage.ListMonth(ctx, date)
+}
