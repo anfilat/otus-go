@@ -1,9 +1,8 @@
 package main
 
 import (
-	"encoding/json"
+	"flag"
 	"fmt"
-	"os"
 )
 
 var (
@@ -13,15 +12,14 @@ var (
 )
 
 func printVersion() {
-	if err := json.NewEncoder(os.Stdout).Encode(struct {
-		Release   string
-		BuildDate string
-		GitHash   string
-	}{
-		Release:   release,
-		BuildDate: buildDate,
-		GitHash:   gitHash,
-	}); err != nil {
-		fmt.Printf("error while decode version info: %v\n", err)
+	fmt.Printf("Calendar %s release (%s) built on %s\n", release, gitHash, buildDate)
+}
+
+func isVersionCommand() bool {
+	for _, name := range flag.Args() {
+		if name == "version" {
+			return true
+		}
 	}
+	return false
 }
