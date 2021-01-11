@@ -109,7 +109,7 @@ func (s *store) Delete(ctx context.Context, id int) error {
 
 func (s *store) DeleteAll(ctx context.Context) error {
 	query := `
-		DELETE FROM event
+		TRUNCATE TABLE event RESTART IDENTITY
 	`
 	_, err := s.db.ExecContext(ctx, query)
 	if err != nil {

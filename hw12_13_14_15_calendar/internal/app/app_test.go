@@ -45,6 +45,7 @@ func (s *SuiteTest) SetupTest() {
 
 func (s *SuiteTest) TearDownTest() {
 	ctx := context.Background()
+	_ = s.db.DeleteAll(ctx)
 	_ = s.db.Close(ctx)
 }
 
