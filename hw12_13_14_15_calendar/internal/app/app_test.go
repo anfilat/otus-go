@@ -11,8 +11,7 @@ import (
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/app"
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/logger"
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage"
-	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage/memorystorage"
-	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage/sqlstorage"
+	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage/initstorage"
 )
 
 type SuiteTest struct {
@@ -27,15 +26,9 @@ func (s *SuiteTest) SetupTest() {
 	logg, _ := logger.New("", buf, "")
 	s.logg = logg
 
-	var db storage.Storage
-	dbConnect := os.Getenv("PQ_TEST")
-	if dbConnect == "" {
-		db = memorystorage.New()
-	} else {
-		db = sqlstorage.New()
-	}
 	ctx := context.Background()
-	_ = db.Connect(ctx, dbConnect)
+	dbConnect := os.Getenv("PQ_TEST")
+	db, _ := initstorage.New(ctx, dbConnect == "", dbConnect)
 	s.db = db
 
 	_ = s.db.DeleteAll(ctx)
