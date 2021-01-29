@@ -94,7 +94,7 @@ func (s *CreateEventTest) TestCreateEventFailDateBusy() {
 func (s *CreateEventTest) AddEventForTime(start, stop time.Time) error {
 	event := s.NewCommonEvent()
 	ctx := context.Background()
-	_, err := s.calendar.CreateEvent(
+	_, err := s.calendar.Create(
 		ctx,
 		event.UserID,
 		event.Title,
