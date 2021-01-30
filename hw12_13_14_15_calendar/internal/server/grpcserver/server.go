@@ -30,7 +30,7 @@ func (s *server) Start(addr string) error {
 	}
 
 	server := grpc.NewServer()
-	RegisterCalendarServer(server, NewService())
+	RegisterCalendarServer(server, NewService(s.app))
 
 	s.logger.Info("starting grpc server on ", addr)
 	err = server.Serve(lsn)
