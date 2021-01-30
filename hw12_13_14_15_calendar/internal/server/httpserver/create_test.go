@@ -3,8 +3,6 @@ package httpserver
 import (
 	"bytes"
 	"encoding/json"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -15,45 +13,29 @@ type HttpCreateTest struct {
 	SuiteTest
 }
 
-func (s *HttpCreateTest) TestCreateEvent() {
+func (s *HttpCreateTest) TestCreate() {
 	event := s.NewCommonEvent()
-	data, err := json.Marshal(event)
-	s.Require().NoError(err)
+	data, _ := json.Marshal(event)
 
 	res, err := http.Post(s.ts.URL+"/api/create", "application/json", bytes.NewReader(data))
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusOK, res.StatusCode)
 	s.Require().Greater(s.readCreateId(res.Body), 0)
 
-	data, err = json.Marshal(ListRequest{Date: event.Start})
-	s.Require().NoError(err)
+	data, _ = json.Marshal(ListRequest{Date: event.Start})
 
 	res, err = http.Post(s.ts.URL+"/api/listday", "application/json", bytes.NewReader(data))
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusOK, res.StatusCode)
-	events := s.readEvent(res.Body)
+	events := s.readEvents(res.Body)
 	s.Require().Equal(1, len(events))
 	s.EqualEvents(event, events[0])
 }
 
-func (s *HttpCreateTest) readCreateId(body io.ReadCloser) int {
-	data, err := ioutil.ReadAll(body)
-	defer body.Close()
-
-	result := CreateResult{}
-	err = json.Unmarshal(data, &result)
+func (s *HttpCreateTest) TestCreateFail() {
+	res, err := http.Post(s.ts.URL+"/api/create", "application/json", bytes.NewReader([]byte("Hello, world\n")))
 	s.Require().NoError(err)
-	return result.ID
-}
-
-func (s *HttpCreateTest) readEvent(body io.ReadCloser) ListResult {
-	data, err := ioutil.ReadAll(body)
-	defer body.Close()
-
-	result := ListResult{}
-	err = json.Unmarshal(data, &result)
-	s.Require().NoError(err)
-	return result
+	s.Require().Equal(http.StatusBadRequest, res.StatusCode)
 }
 
 func TestHttpCreateTest(t *testing.T) {

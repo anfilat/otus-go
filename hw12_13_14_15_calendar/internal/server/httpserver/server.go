@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -60,136 +59,18 @@ func (s *server) configureRouter() {
 	router := s.router
 	router.Use(loggingMiddleware(s.logger))
 
-	router.HandleFunc("/hello", s.handleHello).Methods(http.MethodGet)
+	router.HandleFunc("/hello", handleHello).Methods(http.MethodGet)
 
 	apiRouter := router.PathPrefix("/api").Subrouter()
-	apiRouter.HandleFunc("/create", s.handleCreate).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/update", s.handleUpdate).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/delete", s.handleDelete).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/listday", s.handleListDay).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/listweek", s.handleListWeek).Methods(http.MethodPost)
-	apiRouter.HandleFunc("/listmonth", s.handleListMonth).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/create", handleCreate(s.app)).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/update", handleUpdate(s.app)).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/delete", handleDelete(s.app)).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/listday", handleListDay(s.app)).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/listweek", handleListWeek(s.app)).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/listmonth", handleListMonth(s.app)).Methods(http.MethodPost)
 }
 
-func (s *server) handleHello(w http.ResponseWriter, _ *http.Request) {
-	//nolint:errcheck
-	w.Write([]byte("Hello, world\n"))
-}
-
-func (s *server) handleCreate(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	req := Event{}
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	id, err := s.app.Create(r.Context(), req.UserID, req.Title, req.Description, req.Start, req.Stop, req.Notification)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	s.writeJSON(w, CreateResult{id})
-}
-
-func (s *server) handleUpdate(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	req := Event{}
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	change := httpEventToStorageEvent(req)
-	err = s.app.Update(r.Context(), req.ID, change)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	s.writeJSON(w, OkResult{Ok: true})
-}
-
-func (s *server) handleDelete(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	req := DeleteRequest{}
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	err = s.app.Delete(r.Context(), req.ID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	s.writeJSON(w, OkResult{Ok: true})
-}
-
-func (s *server) handleListDay(w http.ResponseWriter, r *http.Request) {
-	s.handleList(w, r, s.app.ListDay)
-}
-
-func (s *server) handleListWeek(w http.ResponseWriter, r *http.Request) {
-	s.handleList(w, r, s.app.ListMonth)
-}
-
-func (s *server) handleListMonth(w http.ResponseWriter, r *http.Request) {
-	s.handleList(w, r, s.app.ListWeek)
-}
-
-func (s *server) handleList(w http.ResponseWriter, r *http.Request, fn app.ListEvents) {
-	body, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	req := ListRequest{}
-	err = json.Unmarshal(body, &req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	events, err := fn(r.Context(), req.Date)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	result := make(ListResult, 0, len(events))
-	for _, event := range events {
-		result = append(result, storageEventToHTTPEvent(event))
-	}
-	s.writeJSON(w, result)
-}
-
-func (s *server) writeJSON(w http.ResponseWriter, v interface{}) {
+func writeJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	data, _ := json.Marshal(v)
 	//nolint:errcheck
