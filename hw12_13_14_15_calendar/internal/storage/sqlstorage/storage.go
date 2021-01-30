@@ -202,14 +202,14 @@ func (s *store) queryList(ctx context.Context, query string, args ...interface{}
 	return
 }
 
-func (s *store) IsTimeBusy(ctx context.Context, start, stop time.Time, excludeID int) (bool, error) {
-	var count int
+func (s *store) IsTimeBusy(ctx context.Context, userID int, start, stop time.Time, excludeID int) (bool, error) {
 	query := `
 		SELECT Count(*) AS count
 		FROM event
-		WHERE start < $1 AND stop > $2 AND event_id != $3
+		WHERE user_id = $1 AND start < $2 AND stop > $3 AND event_id != $4
 	`
-	err := s.db.QueryRowContext(ctx, query, stop, start, excludeID).Scan(&count)
+	var count int
+	err := s.db.QueryRowContext(ctx, query, userID, stop, start, excludeID).Scan(&count)
 	if err != nil {
 		return false, fmt.Errorf("db query: %w", err)
 	}

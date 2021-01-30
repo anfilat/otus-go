@@ -52,6 +52,16 @@ func (s *CreateEventTest) TestCreateEventFailStartInPast() {
 	s.Require().Equal(app.ErrStartInPast, err)
 }
 
+func (s *CreateEventTest) TestCreateEventForOtherUser() {
+	event := s.NewCommonEvent()
+	_, err := s.AddEvent(event)
+	s.Require().NoError(err)
+
+	event.UserID = event.UserID + 1
+	_, err = s.AddEvent(event)
+	s.Require().NoError(err)
+}
+
 func (s *CreateEventTest) TestCreateEventNoDateBusy() {
 	event := s.NewCommonEvent()
 	_, err := s.AddEvent(event)

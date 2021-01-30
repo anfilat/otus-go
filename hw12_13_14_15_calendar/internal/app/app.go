@@ -29,7 +29,7 @@ func (a *app) Create(ctx context.Context, userID int, title, desc string, start,
 		err = ErrStartInPast
 		return
 	}
-	isBusy, err := a.storage.IsTimeBusy(ctx, start, stop, 0)
+	isBusy, err := a.storage.IsTimeBusy(ctx, userID, start, stop, 0)
 	if err != nil {
 		return
 	}
@@ -58,7 +58,7 @@ func (a *app) Update(ctx context.Context, id int, change storage.Event) error {
 	if time.Now().After(change.Start) {
 		return ErrStartInPast
 	}
-	isBusy, err := a.storage.IsTimeBusy(ctx, change.Start, change.Stop, id)
+	isBusy, err := a.storage.IsTimeBusy(ctx, change.UserID, change.Start, change.Stop, id)
 	if err != nil {
 		return err
 	}

@@ -25,7 +25,7 @@ type Events interface {
 	ListDay(ctx context.Context, date time.Time) ([]Event, error)
 	ListWeek(ctx context.Context, date time.Time) ([]Event, error)
 	ListMonth(ctx context.Context, date time.Time) ([]Event, error)
-	IsTimeBusy(ctx context.Context, start, stop time.Time, excludeID int) (bool, error)
+	IsTimeBusy(ctx context.Context, userID int, start, stop time.Time, excludeID int) (bool, error)
 }
 
 type Event struct {
