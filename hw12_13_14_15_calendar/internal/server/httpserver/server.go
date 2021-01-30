@@ -57,50 +57,23 @@ func (s *server) Stop(ctx context.Context) error {
 }
 
 func (s *server) configureRouter() {
-	s.router.Use(loggingMiddleware(s.logger))
-	s.router.HandleFunc("/hello", s.handleHello).Methods(http.MethodGet)
-	s.router.HandleFunc("/api/create", s.handleCreate).Methods(http.MethodPost)
-	s.router.HandleFunc("/api/update", s.handleUpdate).Methods(http.MethodPost)
-	s.router.HandleFunc("/api/delete", s.handleDelete).Methods(http.MethodPost)
-	s.router.HandleFunc("/api/listday", s.handleListDay).Methods(http.MethodPost)
-	s.router.HandleFunc("/api/listweek", s.handleListWeek).Methods(http.MethodPost)
-	s.router.HandleFunc("/api/listmonth", s.handleListMonth).Methods(http.MethodPost)
+	router := s.router
+	router.Use(loggingMiddleware(s.logger))
+
+	router.HandleFunc("/hello", s.handleHello).Methods(http.MethodGet)
+
+	apiRouter := router.PathPrefix("/api").Subrouter()
+	apiRouter.HandleFunc("/create", s.handleCreate).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/update", s.handleUpdate).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/delete", s.handleDelete).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/listday", s.handleListDay).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/listweek", s.handleListWeek).Methods(http.MethodPost)
+	apiRouter.HandleFunc("/listmonth", s.handleListMonth).Methods(http.MethodPost)
 }
 
 func (s *server) handleHello(w http.ResponseWriter, _ *http.Request) {
-	_, err := w.Write([]byte("Hello, world\n"))
-	if err != nil {
-		s.logger.Error(fmt.Errorf("http write: %w", err))
-	}
+	fmt.Fprint(w, []byte("Hello, world\n"))
 }
-
-type Event struct {
-	ID           int
-	Title        string
-	Start        time.Time
-	Stop         time.Time
-	Description  string
-	UserID       int
-	Notification *time.Duration `json:"notification,omitempty"`
-}
-
-type DeleteRequest struct {
-	ID int
-}
-
-type ListRequest struct {
-	Date time.Time
-}
-
-type CreateResult struct {
-	ID int
-}
-
-type OkResult struct {
-	Ok bool
-}
-
-type ListResult []Event
 
 func (s *server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
@@ -141,15 +114,7 @@ func (s *server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	change := storage.Event{
-		ID:           req.ID,
-		Title:        req.Title,
-		Start:        req.Start,
-		Stop:         req.Stop,
-		Description:  req.Description,
-		UserID:       req.UserID,
-		Notification: req.Notification,
-	}
+	change := httpEventToStorageEvent(req)
 	err = s.app.Update(r.Context(), req.ID, change)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -218,24 +183,37 @@ func (s *server) handleList(w http.ResponseWriter, r *http.Request, fn app.ListE
 
 	result := make(ListResult, 0, len(events))
 	for _, event := range events {
-		result = append(result, Event{
-			ID:           event.ID,
-			Title:        event.Title,
-			Start:        event.Start,
-			Stop:         event.Stop,
-			Description:  event.Description,
-			UserID:       event.UserID,
-			Notification: event.Notification,
-		})
+		result = append(result, storageEventToHTTPEvent(event))
 	}
 	s.writeJSON(w, result)
 }
 
 func (s *server) writeJSON(w http.ResponseWriter, v interface{}) {
-	data, _ := json.Marshal(v)
 	w.Header().Add("Content-Type", "application/json")
-	_, err := w.Write(data)
-	if err != nil {
-		s.logger.Error(fmt.Errorf("http write: %w", err))
+	data, _ := json.Marshal(v)
+	fmt.Fprint(w, data)
+}
+
+func httpEventToStorageEvent(event Event) storage.Event {
+	return storage.Event{
+		ID:           event.ID,
+		Title:        event.Title,
+		Start:        event.Start,
+		Stop:         event.Stop,
+		Description:  event.Description,
+		UserID:       event.UserID,
+		Notification: event.Notification,
+	}
+}
+
+func storageEventToHTTPEvent(event storage.Event) Event {
+	return Event{
+		ID:           event.ID,
+		Title:        event.Title,
+		Start:        event.Start,
+		Stop:         event.Stop,
+		Description:  event.Description,
+		UserID:       event.UserID,
+		Notification: event.Notification,
 	}
 }
