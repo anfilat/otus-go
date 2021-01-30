@@ -22,23 +22,22 @@ type SuiteTest struct {
 }
 
 func (s *SuiteTest) SetupTest() {
-	var buf bytes.Buffer
-	logg, _ := logger.New("", &buf, "")
-	s.logg = logg
-
 	ctx := context.Background()
+
+	var buf bytes.Buffer
+	s.logg, _ = logger.New("", &buf, "")
+
 	dbConnect := os.Getenv("PQ_TEST")
-	db, _ := initstorage.New(ctx, dbConnect == "", dbConnect)
-	s.db = db
+	s.db, _ = initstorage.New(ctx, dbConnect == "", dbConnect)
 
-	_ = s.db.DeleteAll(ctx)
+	s.calendar = app.New(s.logg, s.db)
 
-	s.calendar = app.New(logg, db)
+	_ = s.calendar.DeleteAll(ctx)
 }
 
 func (s *SuiteTest) TearDownTest() {
 	ctx := context.Background()
-	_ = s.db.DeleteAll(ctx)
+	_ = s.calendar.DeleteAll(ctx)
 	_ = s.db.Close(ctx)
 }
 

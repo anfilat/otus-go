@@ -15,6 +15,7 @@ type App interface {
 	Create(ctx context.Context, userID int, title, desc string, start, stop time.Time, notif *time.Duration) (id int, err error)
 	Update(ctx context.Context, id int, change storage.Event) error
 	Delete(ctx context.Context, id int) error
+	DeleteAll(ctx context.Context) error
 	ListAll(ctx context.Context) ([]storage.Event, error)
 	ListDay(ctx context.Context, date time.Time) ([]storage.Event, error)
 	ListWeek(ctx context.Context, date time.Time) ([]storage.Event, error)

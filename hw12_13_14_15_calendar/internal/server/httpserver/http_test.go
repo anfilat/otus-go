@@ -17,29 +17,32 @@ import (
 
 type SuiteTest struct {
 	suite.Suite
-	db storage.Storage
-	ts *httptest.Server
+	ts       *httptest.Server
+	calendar app.App
+	logg     logger.Logger
+	db       storage.Storage
 }
 
 func (s *SuiteTest) SetupTest() {
-	var buf bytes.Buffer
-	logg, _ := logger.New("", &buf, "")
-
 	ctx := context.Background()
+
+	var buf bytes.Buffer
+	s.logg, _ = logger.New("", &buf, "")
+
 	dbConnect := os.Getenv("PQ_TEST")
-	db, _ := initstorage.New(ctx, dbConnect == "", dbConnect)
-	s.db = db
+	s.db, _ = initstorage.New(ctx, dbConnect == "", dbConnect)
 
-	_ = s.db.DeleteAll(ctx)
+	s.calendar = app.New(s.logg, s.db)
 
-	calendar := app.New(logg, db)
-	s.ts = httptest.NewServer(newServer(calendar, logg).router)
+	s.ts = httptest.NewServer(newServer(s.calendar, s.logg).router)
+
+	_ = s.calendar.DeleteAll(ctx)
 }
 
 func (s *SuiteTest) TearDownTest() {
 	ctx := context.Background()
 	s.ts.Close()
-	_ = s.db.DeleteAll(ctx)
+	_ = s.calendar.DeleteAll(ctx)
 	_ = s.db.Close(ctx)
 }
 

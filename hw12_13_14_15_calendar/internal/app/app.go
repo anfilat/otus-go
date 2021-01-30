@@ -73,6 +73,10 @@ func (a *app) Delete(ctx context.Context, id int) error {
 	return a.storage.Delete(ctx, id)
 }
 
+func (a *app) DeleteAll(ctx context.Context) error {
+	return a.storage.DeleteAll(ctx)
+}
+
 func (a *app) ListAll(ctx context.Context) ([]storage.Event, error) {
 	return a.storage.ListAll(ctx)
 }
