@@ -40,20 +40,21 @@ func configure(v *viper.Viper) {
 
 	v.SetDefault("logger.level", "INFO")
 
-	v.SetDefault("http.host", "127.0.0.1")
-	v.SetDefault("http.port", "8080")
+	v.SetDefault("server.host", "127.0.0.1")
+	v.SetDefault("server.httpPort", "8080")
+	v.SetDefault("server.grpcPort", "8081")
 
 	v.SetDefault("database.inmem", true)
 }
 
 type Config struct {
 	Logger   LoggerConf
-	HTTP     HTTPConf
+	Server   ServerConf
 	Database DatabaseConf
 }
 
 func (c Config) Validate() error {
-	if err := c.HTTP.Validate(); err != nil {
+	if err := c.Server.Validate(); err != nil {
 		return err
 	}
 
@@ -69,18 +70,23 @@ type LoggerConf struct {
 	File  string
 }
 
-type HTTPConf struct {
-	Host string
-	Port string
+type ServerConf struct {
+	Host     string
+	HTTPPort string
+	GrpcPort string
 }
 
-func (c HTTPConf) Validate() error {
+func (c ServerConf) Validate() error {
 	if c.Host == "" {
 		return errors.New("http app server host is required")
 	}
 
-	if c.Port == "" {
+	if c.HTTPPort == "" {
 		return errors.New("http app server port is required")
+	}
+
+	if c.GrpcPort == "" {
+		return errors.New("grpc app server port is required")
 	}
 
 	return nil

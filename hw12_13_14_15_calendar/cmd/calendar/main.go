@@ -11,6 +11,7 @@ import (
 
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/app"
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/logger"
+	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/server/grpcserver"
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/server/httpserver"
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage"
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage/initstorage"
@@ -53,9 +54,18 @@ func main() {
 
 	calendar := app.New(logg, db)
 
-	server := httpserver.NewServer(calendar, logg)
+	httpServer := httpserver.NewServer(calendar, logg)
 	go func() {
-		err := server.Start(config.HTTP.Host + ":" + config.HTTP.Port)
+		err := httpServer.Start(config.Server.Host + ":" + config.Server.HTTPPort)
+		if err != nil {
+			logg.Error(err)
+			cancel()
+		}
+	}()
+
+	grpcServer := grpcserver.NewServer(calendar, logg)
+	go func() {
+		err := grpcServer.Start(config.Server.Host + ":" + config.Server.GrpcPort)
 		if err != nil {
 			logg.Error(err)
 			cancel()
@@ -68,7 +78,7 @@ func main() {
 
 	logg.Info("stopping calendar")
 	cancel()
-	shutDown(logg, server, db)
+	shutDown(logg, httpServer, grpcServer, db)
 	logg.Info("calendar is stopped")
 }
 
@@ -80,11 +90,14 @@ func watchSignals(cancel context.CancelFunc) {
 	cancel()
 }
 
-func shutDown(logg logger.Logger, server httpserver.Server, db storage.Storage) {
+func shutDown(logg logger.Logger, httpServer httpserver.Server, grpcServer grpcserver.Server, db storage.Storage) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	if err := server.Stop(ctx); err != nil {
+	if err := httpServer.Stop(ctx); err != nil {
+		logg.Error(err)
+	}
+	if err := grpcServer.Stop(ctx); err != nil {
 		logg.Error(err)
 	}
 	if err := db.Close(ctx); err != nil {

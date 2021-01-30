@@ -1,7 +1,17 @@
 syntax = "proto3";
 
 package event;
+option go_package = ".;grpcserver";
 
 message Event {
-    // TODO
+    int32 id = 1;
+}
+
+message EventCreateResult {
+    int32 id = 1;
+}
+
+service Calendar {
+    rpc Create (Event) returns (EventCreateResult) {
+    }
 }
