@@ -13,6 +13,7 @@ import (
 type server struct {
 	app    app.App
 	logger logger.Logger
+	srv    *grpc.Server
 }
 
 func newServer(app app.App, logger logger.Logger) *server {
@@ -29,17 +30,14 @@ func (s *server) Start(addr string) error {
 		return err
 	}
 
-	server := grpc.NewServer()
-	RegisterCalendarServer(server, NewService(s.app))
+	s.srv = grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor(s.logger)))
+	RegisterCalendarServer(s.srv, NewService(s.app))
 
 	s.logger.Info("starting grpc server on ", addr)
-	err = server.Serve(lsn)
-	if err != nil {
-		return err
-	}
-	return nil
+	return s.srv.Serve(lsn)
 }
 
-func (s *server) Stop(ctx context.Context) error {
+func (s *server) Stop(_ context.Context) error {
+	s.srv.GracefulStop()
 	return nil
 }

@@ -1,3 +1,4 @@
+//go:generate protoc -I "/usr/local/include/" --proto_path=../../../api/ --go_out=. --go-grpc_out=. ../../../api/EventService.proto
 package grpcserver
 
 import (

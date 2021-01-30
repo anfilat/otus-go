@@ -31,4 +31,4 @@ lint: install-lint-deps
 
 .PHONY: generate
 generate:
-	protoc -I "/usr/local/include/" --proto_path=api/ --go_out=internal/server/grpcserver --go-grpc_out=internal/server/grpcserver api/EventService.proto
+	go generate ./...

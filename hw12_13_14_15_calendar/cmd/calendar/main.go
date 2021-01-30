@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -76,7 +77,7 @@ func main() {
 
 	<-mainCtx.Done()
 
-	logg.Info("stopping calendar")
+	logg.Info("stopping calendar...")
 	cancel()
 	shutDown(logg, httpServer, grpcServer, db)
 	logg.Info("calendar is stopped")
@@ -94,12 +95,26 @@ func shutDown(logg logger.Logger, httpServer httpserver.Server, grpcServer grpcs
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	if err := httpServer.Stop(ctx); err != nil {
-		logg.Error(err)
-	}
-	if err := grpcServer.Stop(ctx); err != nil {
-		logg.Error(err)
-	}
+	wg := &sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := httpServer.Stop(ctx); err != nil {
+			logg.Error(err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := grpcServer.Stop(ctx); err != nil {
+			logg.Error(err)
+		}
+	}()
+
+	wg.Wait()
+
 	if err := db.Close(ctx); err != nil {
 		logg.Error(err)
 	}
