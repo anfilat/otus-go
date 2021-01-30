@@ -72,7 +72,8 @@ func (s *server) configureRouter() {
 }
 
 func (s *server) handleHello(w http.ResponseWriter, _ *http.Request) {
-	fmt.Fprint(w, []byte("Hello, world\n"))
+	//nolint:errcheck
+	w.Write([]byte("Hello, world\n"))
 }
 
 func (s *server) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +192,8 @@ func (s *server) handleList(w http.ResponseWriter, r *http.Request, fn app.ListE
 func (s *server) writeJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	data, _ := json.Marshal(v)
-	fmt.Fprint(w, data)
+	//nolint:errcheck
+	w.Write(data)
 }
 
 func httpEventToStorageEvent(event Event) storage.Event {
