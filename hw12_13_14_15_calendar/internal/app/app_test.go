@@ -83,5 +83,6 @@ func (s *SuiteTest) EqualEvents(event1, event2 storage.Event) {
 	s.Require().Equal(event1.Description, event2.Description)
 	s.Require().Equal(event1.Start.Unix(), event2.Start.Unix())
 	s.Require().Equal(event1.Stop.Unix(), event2.Stop.Unix())
+	s.Require().Equal(event1.UserID, event2.UserID)
 	s.Require().Equal(event1.Notification, event2.Notification)
 }

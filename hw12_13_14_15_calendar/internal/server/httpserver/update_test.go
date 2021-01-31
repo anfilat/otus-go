@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -22,7 +21,7 @@ func (s *HttpUpdateTest) TestUpdate() {
 	event.Stop = event.Stop.Add(time.Hour)
 	data, _ := json.Marshal(event)
 
-	res, err := http.Post(s.ts.URL+"/api/update", "application/json", bytes.NewReader(data))
+	res, err := s.Call("update", data)
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusOK, res.StatusCode)
 }

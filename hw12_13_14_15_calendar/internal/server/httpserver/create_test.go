@@ -1,7 +1,7 @@
 package httpserver
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -14,26 +14,49 @@ type HttpCreateTest struct {
 }
 
 func (s *HttpCreateTest) TestCreate() {
-	event := s.NewCommonEvent()
-	data, _ := json.Marshal(event)
+	tests := []struct {
+		name  string
+		event Event
+	}{
+		{
+			"with notification",
+			s.NewCommonEvent(),
+		},
+		{
+			"without notification",
+			func() Event {
+				event := s.NewCommonEvent()
+				event.Notification = nil
+				return event
+			}(),
+		},
+	}
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			data, _ := json.Marshal(tt.event)
 
-	res, err := http.Post(s.ts.URL+"/api/create", "application/json", bytes.NewReader(data))
-	s.Require().NoError(err)
-	s.Require().Equal(http.StatusOK, res.StatusCode)
-	s.Require().Greater(s.readCreateId(res.Body), 0)
+			res, err := s.Call("create", data)
+			s.Require().NoError(err)
+			s.Require().Equal(http.StatusOK, res.StatusCode)
+			id := s.readCreateId(res.Body)
+			s.Require().Greater(id, 0)
 
-	data, _ = json.Marshal(ListRequest{Date: event.Start})
+			data, _ = json.Marshal(ListRequest{Date: tt.event.Start})
 
-	res, err = http.Post(s.ts.URL+"/api/listday", "application/json", bytes.NewReader(data))
-	s.Require().NoError(err)
-	s.Require().Equal(http.StatusOK, res.StatusCode)
-	events := s.readEvents(res.Body)
-	s.Require().Equal(1, len(events))
-	s.EqualEvents(event, events[0])
+			res, err = s.Call("listday", data)
+			s.Require().NoError(err)
+			s.Require().Equal(http.StatusOK, res.StatusCode)
+			events := s.readEvents(res.Body)
+			s.Require().Equal(1, len(events))
+			s.EqualEvents(tt.event, events[0])
+
+			_ = s.app.DeleteAll(context.Background())
+		})
+	}
 }
 
 func (s *HttpCreateTest) TestCreateFail() {
-	res, err := http.Post(s.ts.URL+"/api/create", "application/json", bytes.NewReader([]byte("Hello, world\n")))
+	res, err := s.Call("create", []byte("Hello, world\n"))
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusBadRequest, res.StatusCode)
 }

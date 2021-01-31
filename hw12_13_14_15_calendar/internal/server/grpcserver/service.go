@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,7 +26,6 @@ func NewService(app app.App) *Service {
 }
 
 func (s *Service) Create(ctx context.Context, req *Event) (*CreateResult, error) {
-	notification := req.Notification.AsDuration()
 	id, err := s.app.Create(
 		ctx,
 		int(req.UserId),
@@ -33,7 +33,7 @@ func (s *Service) Create(ctx context.Context, req *Event) (*CreateResult, error)
 		req.Description,
 		req.Start.AsTime(),
 		req.Stop.AsTime(),
-		&notification,
+		getNotification(req),
 	)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -43,7 +43,6 @@ func (s *Service) Create(ctx context.Context, req *Event) (*CreateResult, error)
 }
 
 func (s *Service) Update(ctx context.Context, req *Event) (*UpdateResult, error) {
-	notification := req.Notification.AsDuration()
 	change := storage.Event{
 		ID:           int(req.Id),
 		Title:        req.Title,
@@ -51,7 +50,7 @@ func (s *Service) Update(ctx context.Context, req *Event) (*UpdateResult, error)
 		Stop:         req.Stop.AsTime(),
 		Description:  req.Description,
 		UserID:       int(req.UserId),
-		Notification: &notification,
+		Notification: getNotification(req),
 	}
 	err := s.app.Update(ctx, int(req.Id), change)
 	if err != nil {
@@ -59,6 +58,14 @@ func (s *Service) Update(ctx context.Context, req *Event) (*UpdateResult, error)
 	}
 
 	return &UpdateResult{}, nil
+}
+
+func getNotification(req *Event) *time.Duration {
+	if req.Notification != nil {
+		data := req.Notification.AsDuration()
+		return &data
+	}
+	return nil
 }
 
 func (s *Service) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResult, error) {

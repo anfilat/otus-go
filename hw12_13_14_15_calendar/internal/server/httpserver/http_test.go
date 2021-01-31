@@ -50,6 +50,10 @@ func (s *SuiteTest) TearDownTest() {
 	_ = s.db.Close(ctx)
 }
 
+func (s *SuiteTest) Call(endPoint string, data []byte) (resp *http.Response, err error) {
+	return http.Post(s.ts.URL+"/api/"+endPoint, "application/json", bytes.NewReader(data))
+}
+
 func (s *SuiteTest) NewCommonEvent() Event {
 	var eventStart = time.Now().Add(2 * time.Hour)
 	var eventStop = eventStart.Add(time.Hour)
@@ -71,6 +75,7 @@ func (s *SuiteTest) EqualEvents(event1, event2 Event) {
 	s.Require().Equal(event1.Description, event2.Description)
 	s.Require().Equal(event1.Start.Unix(), event2.Start.Unix())
 	s.Require().Equal(event1.Stop.Unix(), event2.Stop.Unix())
+	s.Require().Equal(event1.UserID, event2.UserID)
 	s.Require().Equal(event1.Notification, event2.Notification)
 }
 

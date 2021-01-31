@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -19,7 +18,7 @@ func (s *HttpListTest) TestListDay() {
 
 	data, _ := json.Marshal(ListRequest{Date: event.Start})
 
-	res, err := http.Post(s.ts.URL+"/api/listday", "application/json", bytes.NewReader(data))
+	res, err := s.Call("listday", data)
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusOK, res.StatusCode)
 	events := s.readEvents(res.Body)
@@ -33,7 +32,7 @@ func (s *HttpListTest) TestListWeek() {
 
 	data, _ := json.Marshal(ListRequest{Date: event.Start})
 
-	res, err := http.Post(s.ts.URL+"/api/listweek", "application/json", bytes.NewReader(data))
+	res, err := s.Call("listweek", data)
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusOK, res.StatusCode)
 	events := s.readEvents(res.Body)
@@ -47,7 +46,7 @@ func (s *HttpListTest) TestListMonth() {
 
 	data, _ := json.Marshal(ListRequest{Date: event.Start})
 
-	res, err := http.Post(s.ts.URL+"/api/listmonth", "application/json", bytes.NewReader(data))
+	res, err := s.Call("listmonth", data)
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusOK, res.StatusCode)
 	events := s.readEvents(res.Body)

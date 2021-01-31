@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -19,7 +18,7 @@ func (s *HttpDeleteTest) TestDelete() {
 
 	data, _ := json.Marshal(DeleteRequest{ID: id})
 
-	res, err := http.Post(s.ts.URL+"/api/delete", "application/json", bytes.NewReader(data))
+	res, err := s.Call("delete", data)
 	s.Require().NoError(err)
 	s.Require().Equal(http.StatusOK, res.StatusCode)
 }

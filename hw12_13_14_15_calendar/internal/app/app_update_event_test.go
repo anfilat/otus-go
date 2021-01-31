@@ -26,6 +26,7 @@ func (s *UpdateEventTest) TestUpdateEvent() {
 		Start:        time.Now().Add(5 * time.Hour),
 		Stop:         time.Now().Add(6 * time.Hour),
 		Description:  "very long event",
+		UserID:       event.UserID,
 		Notification: nil,
 	}
 	err = s.calendar.Update(ctx, id, updateEvent)
