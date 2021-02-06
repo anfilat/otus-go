@@ -25,23 +25,23 @@ func (s *DeleteEventTest) TestDeleteEvent() {
 
 	ctx := context.Background()
 	// удаление несуществующего события
-	err = s.calendar.DeleteEvent(ctx, id2+1)
+	err = s.calendar.Delete(ctx, id2+1)
 	s.Require().NoError(err)
-	data, err := s.calendar.ListAllEvents(ctx)
+	data, err := s.calendar.ListAll(ctx)
 	s.Require().NoError(err)
 	s.Require().Equal(2, len(data))
 
 	// удаление первого события
-	err = s.calendar.DeleteEvent(ctx, id1)
+	err = s.calendar.Delete(ctx, id1)
 	s.Require().NoError(err)
-	data, err = s.calendar.ListAllEvents(ctx)
+	data, err = s.calendar.ListAll(ctx)
 	s.Require().NoError(err)
 	s.Require().Equal(1, len(data))
 
 	// удаление второго события
-	err = s.calendar.DeleteEvent(ctx, id2)
+	err = s.calendar.Delete(ctx, id2)
 	s.Require().NoError(err)
-	data, err = s.calendar.ListAllEvents(ctx)
+	data, err = s.calendar.ListAll(ctx)
 	s.Require().NoError(err)
 	s.Require().Equal(0, len(data))
 }

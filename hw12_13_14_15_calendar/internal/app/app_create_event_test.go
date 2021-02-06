@@ -52,6 +52,16 @@ func (s *CreateEventTest) TestCreateEventFailStartInPast() {
 	s.Require().Equal(app.ErrStartInPast, err)
 }
 
+func (s *CreateEventTest) TestCreateEventForOtherUser() {
+	event := s.NewCommonEvent()
+	_, err := s.AddEvent(event)
+	s.Require().NoError(err)
+
+	event.UserID = event.UserID + 1
+	_, err = s.AddEvent(event)
+	s.Require().NoError(err)
+}
+
 func (s *CreateEventTest) TestCreateEventNoDateBusy() {
 	event := s.NewCommonEvent()
 	_, err := s.AddEvent(event)
@@ -94,7 +104,7 @@ func (s *CreateEventTest) TestCreateEventFailDateBusy() {
 func (s *CreateEventTest) AddEventForTime(start, stop time.Time) error {
 	event := s.NewCommonEvent()
 	ctx := context.Background()
-	_, err := s.calendar.CreateEvent(
+	_, err := s.calendar.Create(
 		ctx,
 		event.UserID,
 		event.Title,

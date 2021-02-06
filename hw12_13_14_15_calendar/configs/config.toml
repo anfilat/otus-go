@@ -2,9 +2,10 @@
 level = "INFO"
 file = "./logs/log.log"
 
-[http]
+[server]
 host="127.0.0.1"
-port="8080"
+httpPort="8080"
+grpcPort="8081"
 
 [database]
 inmem=true

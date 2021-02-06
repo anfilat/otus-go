@@ -9,14 +9,17 @@ import (
 	"github.com/anfilat/otus-go/hw12_13_14_15_calendar/internal/storage"
 )
 
+type ListEvents func(ctx context.Context, date time.Time) ([]storage.Event, error)
+
 type App interface {
-	CreateEvent(ctx context.Context, userID int, title, desc string, start, stop time.Time, notif *time.Duration) (id int, err error)
-	UpdateEvent(ctx context.Context, id int, change storage.Event) error
-	DeleteEvent(ctx context.Context, id int) error
-	ListAllEvents(ctx context.Context) ([]storage.Event, error)
-	ListDayEvents(ctx context.Context, date time.Time) ([]storage.Event, error)
-	ListWeekEvents(ctx context.Context, date time.Time) ([]storage.Event, error)
-	ListMonthEvents(ctx context.Context, date time.Time) ([]storage.Event, error)
+	Create(ctx context.Context, userID int, title, desc string, start, stop time.Time, notif *time.Duration) (id int, err error)
+	Update(ctx context.Context, id int, change storage.Event) error
+	Delete(ctx context.Context, id int) error
+	DeleteAll(ctx context.Context) error
+	ListAll(ctx context.Context) ([]storage.Event, error)
+	ListDay(ctx context.Context, date time.Time) ([]storage.Event, error)
+	ListWeek(ctx context.Context, date time.Time) ([]storage.Event, error)
+	ListMonth(ctx context.Context, date time.Time) ([]storage.Event, error)
 }
 
 func New(logger logger.Logger, storage storage.Storage) App {

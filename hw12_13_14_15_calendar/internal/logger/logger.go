@@ -16,10 +16,6 @@ func (l logger) Info(args ...interface{}) {
 	l.logger.Info(args...)
 }
 
-func (l logger) Warn(args ...interface{}) {
-	l.logger.Warn(args...)
-}
-
 func (l logger) Error(args ...interface{}) {
 	l.logger.Error(args...)
 }
